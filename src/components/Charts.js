@@ -1,25 +1,22 @@
 import React, { Component } from 'react';
-import { LineChart, XAxis, YAxis, CartesianGrid, Line } from 'recharts'
+import { LineChart, XAxis, YAxis, Line } from 'recharts'
 
-const data = [
-  {name: 'Page A', uv: 4000, pv: 2400, amt: 2400},
-  {name: 'Page B', uv: 3000, pv: 1398, amt: 2210},
-  {name: 'Page C', uv: 2000, pv: 9800, amt: 2290},
-  {name: 'Page D', uv: 2780, pv: 3908, amt: 2000},
-  {name: 'Page E', uv: 1890, pv: 4800, amt: 2181},
-  {name: 'Page F', uv: 2390, pv: 3800, amt: 2500},
-  {name: 'Page G', uv: 3490, pv: 4300, amt: 2100},
-];
+import TestDataGenerator from '../generators/TestDataGenerator'
+
+const data = TestDataGenerator()
 
 class Charts extends Component {
     render() {
       return (
         <LineChart width={500} height={300} data={data}>
-          <Line type="monotone" dataKey="uv" stroke="#8884d8" />
-          <Line type="monotone" dataKey="pv" stroke="#82ca9d" />
-          <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-          <XAxis dataKey="name"/>
-          <YAxis/>
+          <Line type="monotone" dataKey="outside_temperature" dot={false} yAxisId={'temperature'}/>
+          <Line type="monotone" dataKey="inside_temperature" dot={false} yAxisId={'temperature'}/>
+          {/* <Line type="monotone" dataKey="hot_water" dot={false} yAxisId={'water'}/>
+          <Line type="monotone" dataKey="electricity" dot={false} yAxisId={'power'}/> */}
+          <XAxis dataKey="time"/>
+          <YAxis yAxisId={'temperature'}/>
+          {/* <YAxis yAxisId={'water'}/>
+          <YAxis yAxisId={'power'}/> */}
         </LineChart>
       );
     }

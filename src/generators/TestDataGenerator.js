@@ -2,13 +2,18 @@ const RandomSerie = ({from=10, to=15, wavePeriod=1, waveScale=0, rand=0.2, dataS
     const result = [];
     for(let i=0; i<dataSets; i++){
         const generated = from + (to-from)*i/(dataSets-1) + Math.sin(i/(dataSets-1)*2*Math.PI/wavePeriod)*waveScale + rand*Math.random();
-        result.append(generated.toFixed(2));
+        result.push(generated.toFixed(2));
     }
+    return result;
 }
 const DataSetLabel = ({dataSets=50, dataSetBegin=1, dataSetEnd=50}) => {
-    return new Array(dataSets).map(i => {
-        time: (dataSetBegin + (dataSetEnd - dataSetBegin)*i/(dataSets-1)),
-    });
+    const result = [];
+    for(let i=0; i<dataSets; i++){
+        result.push({
+            time: (dataSetBegin + (dataSetEnd - dataSetBegin)*i/(dataSets-1)),
+        });
+    }
+    return result;
 }
 
 const Generator = {
@@ -19,9 +24,9 @@ const Generator = {
 }
 
 const TestDataGenerator = () => {
-    const result = DataSetLabel();
+    const result = DataSetLabel({});
     Object.keys(Generator).forEach((key) => {
-        const data = Generator[key]();
+        const data = (Generator[key])();
         data.forEach((val, i)=> {
             result[i][key] = val;
         })

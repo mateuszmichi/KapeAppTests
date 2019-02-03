@@ -7,16 +7,12 @@ import {
 } from "react-router-dom";
 import Charts from './components/Charts'
 
-import TestDataGenerator from './generators/TestDataGenerator'
-
-console.log(TestDataGenerator());
-
 const TestLink = ({link, description, component}) => (
   <Link to={link}>{description}</Link>
 );
 
 const TestContent = ({link, description, component}) => (
-  <Route path={`/${link}/`} component={component} />
+  <Route key={link} path={`/${link}/`} component={component} />
 );
 
 const TestList = [
@@ -36,7 +32,7 @@ class App extends Component {
         <div className="App">
           <div className="Menu">
             <ul>
-              {TestList.map((e)=><li>{TestLink(e)}</li>)}
+              {TestList.map((e)=><li key={e.link}>{TestLink(e)}</li>)}
             </ul>
           </div>
           <div className="TestField">
