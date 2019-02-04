@@ -6,6 +6,7 @@ import {
   Link,
 } from "react-router-dom";
 import Charts from './components/Charts'
+import PDFGeneration from './components/PDFGeneration'
 
 const TestLink = ({link, description, component}) => (
   <Link to={link}>{description}</Link>
@@ -16,7 +17,7 @@ const TestContent = ({link, description, component}) => (
 );
 
 const TestList = [
-  {link:"pdf-generation", description:"Generacja PDF", component: Test},
+  {link:"pdf-generation", description:"Generacja PDF", component: PDFGeneration},
   {link:"recharts", description:"Technologia tworzenia wykresów", component: Charts},
   {link:"indicators", description:"Operacje na wskaźnikach", component: Test},
 ];
