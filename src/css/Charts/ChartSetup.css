@@ -1,0 +1,21 @@
+.DataSetContainer {
+  margin: 16px 0px;
+}
+.DataSet {
+  background-color: #f1f8e9;
+}
+.DataSetContainer .DataSet:nth-child(2n) {
+  background-color: #e8eaf6;
+}
+
+.DataSet .Expanded {
+  background-color: #9fa8da;
+}
+
+.DataSet .Header {
+  padding-bottom: 16px;
+}
+
+.SetupSection + .SetupSection {
+  margin-top: 24px;
+}
