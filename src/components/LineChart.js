@@ -16,21 +16,21 @@ class LineCharts extends Component {
     stopInteractive: PropTypes.bool,
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
-    title: PropTypes.string,
     data: PropTypes.array,
+    usedData: PropTypes.arrayOf(
+      PropTypes.shape({
+        path: PropTypes.string.isRequired,
+        axisName: PropTypes.string.isRequired,
+        styling: PropTypes.shape(styling),
+        label: PropTypes.shape({
+          description: PropTypes.string.isRequired
+        }),
+        // Zarezerwowane dla przyszłości
+        regresion: PropTypes.object
+      })
+    ),
     chartConfig: PropTypes.shape({
-      usedData: PropTypes.arrayOf(
-        PropTypes.shape({
-          path: PropTypes.string.isRequired,
-          axisName: PropTypes.string.isRequired,
-          styling: PropTypes.shape(styling),
-          label: PropTypes.shape({
-            description: PropTypes.string.isRequired
-          }),
-          // Zarezerwowane dla przyszłości
-          regresion: PropTypes.object
-        })
-      ),
+      title: PropTypes.string,
       xAxis: PropTypes.shape({
         description: PropTypes.string,
         dateTime: PropTypes.shape({
@@ -72,7 +72,8 @@ class LineCharts extends Component {
   };
 
   render() {
-    const { usedData, xAxis } = this.props.chartConfig;
+    const { usedData, chartConfig } = this.props;
+    const { xAxis } = chartConfig;
     return (
       <LineChart
         width={this.props.width}

@@ -19,3 +19,12 @@
 .SetupSection + .SetupSection {
   margin-top: 24px;
 }
+
+.LoadDataDialog {
+  padding: 24px;
+  min-width: 480px;
+}
+
+.TabBar {
+  min-width: 160px;
+}

@@ -4,11 +4,16 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 
 import AppBar from "@material-ui/core/AppBar";
 import Button from "@material-ui/core/Button";
-import Tab from "@material-ui/core/Tab";
 import { withStyles } from "@material-ui/core/styles";
 
 import PDFGeneration from "./components/PDFGeneration";
-import Chart from "./components/Chart";
+import ChartCreate from "./components/ChartCreate/ChartCreate";
+
+import { LocaleProvider } from "antd";
+import pl_PL from "antd/lib/locale-provider/pl_PL";
+import moment from "moment";
+import "moment/locale/pl";
+moment.locale("pl");
 
 const styles = {
   root: {
@@ -39,7 +44,7 @@ const TestList = [
   {
     link: "recharts",
     description: "Technologia tworzenia wykresów",
-    component: Chart
+    component: ChartCreate
   },
   {
     link: "indicators",
@@ -55,20 +60,21 @@ function Test() {
 class App extends Component {
   render() {
     const { classes } = this.props;
-    console.log(classes);
     return (
-      <Router>
-        <div className="App">
-          <AppBar position="static" className={classes.root}>
-            {TestList.map(e => (
-              <Link to={e.link} key={e.link} className={classes.menuTab}>
-                <Button className={classes.button}>{e.description}</Button>
-              </Link>
-            ))}
-          </AppBar>
-          <div className="TestField">{TestList.map(e => TestContent(e))}</div>
-        </div>
-      </Router>
+      <LocaleProvider locale={pl_PL}>
+        <Router>
+          <div className="App">
+            <AppBar position="static" className={classes.root}>
+              {TestList.map(e => (
+                <Link to={e.link} key={e.link} className={classes.menuTab}>
+                  <Button className={classes.button}>{e.description}</Button>
+                </Link>
+              ))}
+            </AppBar>
+            <div className="TestField">{TestList.map(e => TestContent(e))}</div>
+          </div>
+        </Router>
+      </LocaleProvider>
     );
   }
 }

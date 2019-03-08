@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 
-import Charts from "./Charts/LineChart";
+// import Charts from "./Charts/LineChart";
 
 import jsPDF from "jspdf";
 

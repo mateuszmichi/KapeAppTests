@@ -26,6 +26,8 @@ import ErrorOutline from "@material-ui/icons/ErrorOutline";
 
 import { Typography } from "@material-ui/core";
 
+import LoadDataDialog from "./LoadDataDialog";
+
 const styles = {
   removeButton: {
     textAlign: "center",
@@ -129,30 +131,9 @@ class SetDisplay extends Component {
 
 const StyledSetDisplay = withStyles(styles)(SetDisplay);
 
-const defaultDataSetSetup = {
-  path: "",
-  axis: 1,
-  description: "",
-  width: 1,
-  color: "black",
-  dashed: false,
-  dashLength: 5,
-  dashSpacing: 5
-};
-
-const testDataSource = {
-  pomiar1: {
-    temperature: {},
-    wilgotnosc: {}
-  },
-  pomiar2: {
-    co2: {},
-    "predkosc wiatru": {}
-  }
-};
-
 class SetsSetup extends Component {
   state = {
+    openDialog: false,
     sets: [
       {
         name: "Parter",
@@ -169,7 +150,17 @@ class SetsSetup extends Component {
     ]
   };
 
-  addSet = () => {};
+  addSet = () => {
+    this.setState({
+      openDialog: true
+    });
+  };
+
+  handleCloseDialog = () => {
+    this.setState({
+      openDialog: false
+    });
+  };
 
   render() {
     const { sets } = this.state;
@@ -211,6 +202,10 @@ class SetsSetup extends Component {
             ))}
           </div>
         )}
+        <LoadDataDialog
+          open={this.state.openDialog}
+          onClose={this.handleCloseDialog}
+        />
       </div>
     );
   }
