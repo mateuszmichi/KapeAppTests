@@ -82,7 +82,7 @@ class LoadData extends Component {
       <div className="LoadData">
         {Object.keys(data).map(key => (
           <Row type="flex" align="middle" key={key}>
-            <Col span={16}>{data[key].fields.description}</Col>
+            <Col span={16}>{data[key].fields.description.value}</Col>
             <Col span={4}>
               <MiddleWrapper>
                 <Tooltip placement="bottom" title="Ustawienia">

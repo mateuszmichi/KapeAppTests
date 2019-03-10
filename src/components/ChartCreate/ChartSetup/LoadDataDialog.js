@@ -1,14 +1,14 @@
-import React, { Component } from "react";
+import React, { Component, PureComponent } from "react";
 import moment from "moment";
-import _ from "lodash";
+import { filter } from "lodash";
 import PropTypes from "prop-types";
 // imported elements
 import TestDataGenerator, {
   RandomSerie
 } from "../../../generators/TestDataGenerator";
+import Upload from "../../Common/Upload";
 // ant.design
 import {
-  Upload,
   Checkbox,
   Form,
   Input,
@@ -28,9 +28,9 @@ const { WeekPicker, MonthPicker, RangePicker } = DatePicker;
 function timeout(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-const filterOutAll = array => _.filter(array, e => e !== "all");
+const filterOutAll = array => filter(array, e => e !== "all");
 
-const filterOnlyDoneFiles = array => _.filter(array, e => e.status === "done");
+const filterOnlyDoneFiles = array => filter(array, e => e.status === "done");
 
 const isDateAfter = date => moment().isBefore(date);
 
@@ -138,10 +138,9 @@ class CustomUpload extends Component {
     const { onChange, disabled } = this.props;
     return (
       <Upload.Dragger
-        // TODO
+        // can add validator={(file) => validatefileresult: boolean}
         accept=".txt,.csv,.xls,.xlsx"
         name="files"
-        action="./do.do"
         onChange={onChange}
         disabled={disabled}
       >
@@ -157,17 +156,31 @@ class CustomUpload extends Component {
   }
 }
 
+class LoadedFiles extends PureComponent {
+  render() {
+    const { fileList } = this.props;
+    return (
+      <Upload
+        showUploadList={{ showRemoveIcon: false }}
+        defaultFileList={fileList.fileList}
+        disabled={true}
+      />
+    );
+  }
+}
+
 class LoadDataForm extends Component {
   static propTypes = {
     mode: PropTypes.oneOf(["edit", "load"]).isRequired,
+    editedData: PropTypes.object,
+    possibleData: PropTypes.array,
     onClose: PropTypes.func,
     loadData: PropTypes.func,
     updateData: PropTypes.func
   };
 
   state = {
-    dataSource: "db",
-    possibleData: [],
+    possibleData: this.props.possibleData || [],
     uploadedFiles: 0
   };
 
@@ -183,12 +196,12 @@ class LoadDataForm extends Component {
   };
 
   changeDataSource = source => {
-    this.setState({
+    this.props.form.setFieldsValue({
       dataSource: source
     });
   };
 
-  // TODO zaslepka na strzal
+  // TODO aktualnie zaslepka na strzal
   loadDataFromApi = async fields => {
     await timeout(2000);
     const Generator = {};
@@ -203,7 +216,7 @@ class LoadDataForm extends Component {
     const formattedFields = [];
     requiredFields.push("description");
     requiredFields.push("dataSource");
-    if (this.state.dataSource === "db") {
+    if (this.props.form.getFieldValue("dataSource") === "db") {
       const currentPeriodValue = this.props.form.getFieldValue("selectPeriod");
       requiredFields.push("selectPeriod");
       requiredFields.push(periods[currentPeriodValue].name);
@@ -231,7 +244,15 @@ class LoadDataForm extends Component {
     return { requiredFields, formattedFields };
   };
 
-  // TODO: strzał
+  getRequiredFields = requiredFields =>
+    requiredFields.reduce(
+      (prev, field) => ({
+        ...prev,
+        [field]: { value: this.props.form.getFieldValue(field) }
+      }),
+      {}
+    );
+
   handleSubmit = async e => {
     e.preventDefault();
 
@@ -249,9 +270,17 @@ class LoadDataForm extends Component {
           fieldsValue[e.name] = e.formatter(fieldsValue[e.name]);
         });
         if (this.props.mode === "edit") {
+          // TODO strzal
         } else {
-          const data = await this.loadDataFromApi(fieldsValue);
-          this.props.loadData({ fields: statusFieldsValue, data });
+          const data =
+            statusFieldsValue["dataSource"] === "db"
+              ? await this.loadDataFromApi(fieldsValue)
+              : {};
+          this.props.loadData({
+            fields: this.getRequiredFields(requiredFields),
+            data,
+            possibleData: this.state.possibleData
+          });
         }
         this.handleReset();
         this.props.onClose();
@@ -284,10 +313,14 @@ class LoadDataForm extends Component {
   };
 
   componentDidMount() {
-    this.loadPossibleData();
+    console.log("did mount", this.props, this.state);
+    if (this.props.mode === "load") {
+      this.loadPossibleData();
+    }
   }
 
   normalizeCheckBox = (value, prevValue = []) => {
+    if (!value) return [];
     if (value.indexOf("all") >= 0 && prevValue.indexOf("all") < 0) {
       return ["all", ...this.state.possibleData.map(e => e.key)];
     }
@@ -344,7 +377,7 @@ class LoadDataForm extends Component {
           <Form.Item label="Źródło danych">
             {getFieldDecorator("dataSource", {
               valuePropName: "activeKey",
-              initialValue: this.state.dataSource
+              initialValue: "db"
             })(
               <Tabs onChange={this.changeDataSource}>
                 <TabPane
@@ -355,7 +388,7 @@ class LoadDataForm extends Component {
                     </span>
                   }
                   key="db"
-                  disabled={isEdit && this.state.dataSource !== "db"}
+                  disabled={isEdit && getFieldValue("dataSource") !== "db"}
                 >
                   <Form.Item label="Rodzaj zakresu danych">
                     {getFieldDecorator("selectPeriod", {
@@ -411,7 +444,7 @@ class LoadDataForm extends Component {
                     </span>
                   }
                   key="file"
-                  disabled={isEdit && this.state.dataSource !== "file"}
+                  disabled={isEdit && getFieldValue("dataSource") !== "file"}
                 >
                   <Form.Item label="Wczytaj plik">
                     <div className="dropbox">
@@ -421,24 +454,29 @@ class LoadDataForm extends Component {
                         rules: [
                           {
                             validator: (rule, value, callback) =>
-                              filterOnlyDoneFiles(value.fileList).length !== 1
+                              filterOnlyDoneFiles(value ? value.fileList : [])
+                                .length !== 1
                                 ? callback(rule.message)
                                 : callback(),
                             message: "Potrzebny poprawny plik do załadowania"
                           }
                         ]
                       })(
-                        <CustomUpload
-                          onChange={this.onUploadChange}
-                          disabled={isEdit || this.state.uploadedFiles > 0}
-                        />
+                        isEdit ? (
+                          <LoadedFiles />
+                        ) : (
+                          <CustomUpload
+                            onChange={this.onUploadChange}
+                            disabled={this.state.uploadedFiles > 0}
+                          />
+                        )
                       )}
                     </div>
                   </Form.Item>
                   <Form.Item>
-                    {getFieldDecorator("saveOnDB", {})(
-                      <Checkbox>Zapisz w bazie danych</Checkbox>
-                    )}
+                    {getFieldDecorator("saveOnDB", {
+                      valuePropName: "checked"
+                    })(<Checkbox>Zapisz w bazie danych</Checkbox>)}
                   </Form.Item>
                 </TabPane>
               </Tabs>
@@ -463,6 +501,25 @@ class LoadDataForm extends Component {
   }
 }
 
+const WrappedLoadDataForm = Form.create({ name: "load_data_form" })(
+  LoadDataForm
+);
+const WrappedEditDataForm = Form.create({
+  name: "edit_data_form",
+  onFieldsChange(props, changedFields) {
+    props.onChange(changedFields);
+  },
+  mapPropsToFields(props) {
+    return Object.keys(props.editedData).reduce(
+      (prev, key) => ({
+        ...prev,
+        [key]: Form.createFormField({ ...props.editedData[key] })
+      }),
+      {}
+    );
+  }
+})(LoadDataForm);
+
 class LoadDataDialog extends Component {
   static propTypes = {
     mode: PropTypes.string,
@@ -474,44 +531,20 @@ class LoadDataDialog extends Component {
 
   onUpdateFields = changedFields => {
     const { editedData, updateData } = this.props;
-    const newValue = Object.keys(changedFields).reduce(
-      (prev, key) => ({ ...prev, [key]: changedFields[key].value }),
-      {}
-    );
-    if (newValue !== editedData.fields) {
+    if (changedFields !== editedData.fields) {
       console.log({
         ...editedData,
-        fields: { ...editedData.fields, ...newValue }
+        fields: { ...editedData.fields, ...changedFields }
       });
       updateData({
         ...editedData,
-        fields: { ...editedData.fields, ...newValue }
+        fields: { ...editedData.fields, ...changedFields }
       });
     }
   };
 
   render() {
     const { mode, editedData, onClose, loadData, updateData } = this.props;
-    const WrappedLoadDataForm = Form.create({ name: "load_data_form" })(
-      LoadDataForm
-    );
-    const WrappedEditDataForm = Form.create({
-      name: "edit_data_form",
-      onFieldsChange(props, changedFields) {
-        props.onChange(changedFields);
-      },
-      mapPropsToFields(props) {
-        return Object.keys(props.editedData).reduce(
-          (prev, key) => ({
-            ...prev,
-            [key]: Form.createFormField({
-              value: props.editedData[key]
-            })
-          }),
-          {}
-        );
-      }
-    })(LoadDataForm);
 
     return (
       <div className="LoadDataDialog">
@@ -521,6 +554,7 @@ class LoadDataDialog extends Component {
             onClose={onClose}
             updateData={updateData}
             editedData={editedData.fields}
+            possibleData={editedData.possibleData}
             onChange={this.onUpdateFields}
           />
         ) : (

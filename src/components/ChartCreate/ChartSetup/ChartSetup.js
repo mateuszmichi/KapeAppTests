@@ -108,7 +108,11 @@ class ChartSetup extends Component {
             header="Wybór wyświetlanych danych"
             key="usedData"
           >
-            <UseData update={this.updateUsedData} data={usedData} />
+            <UseData
+              update={this.updateUsedData}
+              data={usedData}
+              loadedData={loadedData}
+            />
           </Panel>
           <Panel
             disabled={!isActiveChartConfig}
