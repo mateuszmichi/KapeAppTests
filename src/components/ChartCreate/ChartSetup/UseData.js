@@ -1,7 +1,8 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 // imported elements
-import UseDataDialog from "./UseDataDialog";
+import DeleteConfirm from "../../Common/DeleteConfirm";
+import UseDataDialog from "./Dialogs/UseDataDialog";
 // ant.design
 import { Button, Col, Drawer, Row, Tooltip, Popconfirm } from "antd";
 
@@ -9,23 +10,11 @@ const MiddleWrapper = ({ ...props }) => (
   <div className="MiddleWrapper" {...props} />
 );
 
-const DeleteConfirm = ({ ...props }) => (
-  <Popconfirm
-    title={
-      <div className="PopConfirm">
-        Czy na pewno chcesz usunąć zestaw danych?
-      </div>
-    }
-    okText="Tak"
-    cancelText="Nie"
-    {...props}
-  />
-);
-
 class UseData extends Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     loadedData: PropTypes.object.isRequired,
+    config: PropTypes.object.isRequired,
     update: PropTypes.func.isRequired
   };
 
@@ -69,7 +58,7 @@ class UseData extends Component {
     const { data, update } = this.props;
     const newValue = { ...data };
     delete newValue[key];
-    update(update(newValue));
+    update(newValue);
   };
 
   updateData = (key, value) => {
@@ -78,7 +67,7 @@ class UseData extends Component {
   };
 
   render() {
-    const { data, loadedData } = this.props;
+    const { data, loadedData, config } = this.props;
     return (
       <div className="LoadData">
         {Object.keys(data).map(key => (
@@ -99,8 +88,9 @@ class UseData extends Component {
               <MiddleWrapper>
                 <Tooltip placement="bottom" title="Usuń dane z wykresu">
                   <DeleteConfirm
-                  // onConfirm={confirm}
-                  // onCancel={cancel}
+                    title="Usuń dane z wykresu"
+                    // onConfirm={confirm}
+                    // onCancel={cancel}
                   >
                     <Button shape="circle" icon="delete" />
                   </DeleteConfirm>
@@ -137,6 +127,7 @@ class UseData extends Component {
         >
           <UseDataDialog
             mode="load"
+            config={config}
             onClose={this.onCloseDialogLoad}
             loadData={this.loadData}
             loadedData={loadedData}
@@ -158,6 +149,7 @@ class UseData extends Component {
               onClose={this.onCloseDialogEdit}
               editedData={data[this.state.editedData]}
               loadedData={loadedData}
+              config={config}
               updateData={value =>
                 this.updateData(this.state.editedData, value)
               }

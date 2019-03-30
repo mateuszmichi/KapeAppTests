@@ -1,7 +1,7 @@
 import React from "react";
 // imported elements
 // css
-import "../../css/Custom/Upload.css";
+import "../../css/Common/Upload.css";
 // ant.design
 import { Upload } from "antd";
 

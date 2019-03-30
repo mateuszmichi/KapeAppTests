@@ -27,11 +27,10 @@
   flex-direction: column;
 }
 
-.ColorSelectColor {
-  display: inline-block;
-  vertical-align: text-bottom;
-  height: 18px;
-  width: 18px;
-  border-radius: 50%;
-  margin-right: 4px;
+.AutoInputNumber {
+  width: 100%;
+}
+
+.ChartPresentation {
+  padding: 0px 24px;
 }

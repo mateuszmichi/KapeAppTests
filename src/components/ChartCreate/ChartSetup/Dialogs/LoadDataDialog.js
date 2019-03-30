@@ -5,8 +5,8 @@ import PropTypes from "prop-types";
 // imported elements
 import TestDataGenerator, {
   RandomSerie
-} from "../../../generators/TestDataGenerator";
-import Upload from "../../Common/Upload";
+} from "../../../../generators/TestDataGenerator";
+import Upload from "../../../Common/Upload";
 // ant.design
 import {
   Checkbox,
@@ -270,20 +270,27 @@ class LoadDataForm extends Component {
           fieldsValue[e.name] = e.formatter(fieldsValue[e.name]);
         });
         if (this.props.mode === "edit") {
-          // TODO strzal
+          // TODO strzal / update info
         } else {
           const data =
             statusFieldsValue["dataSource"] === "db"
               ? await this.loadDataFromApi(fieldsValue)
               : {};
+          const loadedKeys =
+            statusFieldsValue["dataSource"] === "db"
+              ? filter(this.state.possibleData, e =>
+                  statusFieldsValue["measurements"].includes(e.key)
+                )
+              : [];
           this.props.loadData({
             fields: this.getRequiredFields(requiredFields),
             data,
-            possibleData: this.state.possibleData
+            possibleData: this.state.possibleData,
+            loadedKeys
           });
+          this.handleReset();
+          this.props.onClose();
         }
-        this.handleReset();
-        this.props.onClose();
         return;
       }
     );
@@ -484,16 +491,18 @@ class LoadDataForm extends Component {
           </Form.Item>
         </div>
         <div className="LoadDataDialogSubmit">
-          <Button onClick={this.handleReset} style={{ marginRight: 16 }}>
-            Zresetuj
-          </Button>
+          {!isEdit && (
+            <Button onClick={this.handleReset} style={{ marginRight: 16 }}>
+              Zresetuj
+            </Button>
+          )}
           <Button
             type="primary"
-            icon="plus"
+            icon={isEdit ? "redo" : "plus"}
             htmlType="submit"
             disabled={!(this.state.possibleData.length > 0)}
           >
-            Dodaj dane
+            {isEdit ? "Aktualizuj" : "Dodaj dane"}
           </Button>
         </div>
       </Form>

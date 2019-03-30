@@ -1,7 +1,9 @@
-import React, { Component, Fragment } from "react";
+import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { head } from "lodash";
 // imported elements
+import ColorSelect from "../../../Common/ColorSelect";
+import VisibilitySwitch from "../../../Common/VisibilitySwitch";
 // ant.design
 import {
   Checkbox,
@@ -10,47 +12,11 @@ import {
   InputNumber,
   Row,
   Col,
-  Tabs,
   TreeSelect,
-  Icon,
   Button,
   Select
 } from "antd";
 const { Option } = Select;
-const colors = [
-  {
-    description: "Czarny",
-    color: "black"
-  },
-  {
-    description: "Niebieski",
-    color: "blue"
-  },
-  {
-    description: "Czerwony",
-    color: "red"
-  }
-];
-
-class ColorSelect extends Component {
-  render() {
-    return (
-      <Select placeholder="Kolor linii" {...this.props}>
-        {colors.map((e, i) => (
-          <Option key={i} value={e.color}>
-            <div>
-              <div
-                className="ColorSelectColor"
-                style={{ background: e.color }}
-              />
-              <span>{e.description}</span>
-            </div>
-          </Option>
-        ))}
-      </Select>
-    );
-  }
-}
 
 class PathSelect extends Component {
   static propTypes = {
@@ -58,8 +24,17 @@ class PathSelect extends Component {
   };
 
   genTreeData = () => {
-    console.log(this.props.loadedData);
-    return {};
+    const data = this.props.loadedData;
+    return Object.keys(data).map(e => ({
+      title: data[e].fields.description.value,
+      selectable: false,
+      key: `${e}`,
+      children: data[e].loadedKeys.map(set => ({
+        title: `${data[e].fields.description.value}: ${set.description}`,
+        value: `${e}-${set.key}`,
+        key: `${e}-${set.key}`
+      }))
+    }));
   };
   render() {
     return (
@@ -82,9 +57,9 @@ class AxisSelect extends Component {
     const { data } = this.props;
     return (
       <Select {...this.props}>
-        {Object.keys(data).map(e => (
-          <Option key={e} value={e}>
-            {data[e].description}
+        {data.map(({ id, description }) => (
+          <Option key={id} value={id}>
+            {description}
           </Option>
         ))}
       </Select>
@@ -99,25 +74,34 @@ class UseDataForm extends Component {
     loadedData: PropTypes.object,
     onClose: PropTypes.func,
     loadData: PropTypes.func,
+    config: PropTypes.object.isRequired,
     updateData: PropTypes.func
-  };
-
-  getFieldsFromFlow = () => {
-    const requiredFields = [];
-    const formattedFields = [];
-    return { requiredFields, formattedFields };
   };
 
   handleSubmit = async e => {
     e.preventDefault();
 
-    const { requiredFields, formattedFields } = this.getFieldsFromFlow();
-
-    this.props.form.validateFields(requiredFields, {}, (err, fieldsValue) => {
+    this.props.form.validateFields((err, fieldsValue) => {
       if (err) {
         return;
       }
-      // TODO
+      if (this.props.mode === "edit") {
+        // TODO strzal / update info
+      } else {
+        this.props.loadData({
+          fields: Object.keys(fieldsValue).reduce(
+            (prev, field) => ({
+              ...prev,
+              [field]: {
+                value: fieldsValue[field]
+              }
+            }),
+            {}
+          )
+        });
+        this.handleReset();
+        this.props.onClose();
+      }
     });
   };
 
@@ -125,13 +109,23 @@ class UseDataForm extends Component {
     this.props.form.resetFields();
   };
 
+  handleAxisData = () => {
+    const { config } = this.props;
+    console.log("handleAxisData", this.props);
+    const axisData = Object.keys(config.yAxises).map(key => ({
+      id: key,
+      description: config.yAxises[key].description.value
+    }));
+    return {
+      axisData,
+      defaultAxisData: axisData[0].id
+    };
+  };
+
   render() {
     const { getFieldDecorator, getFieldValue } = this.props.form;
     const isEdit = this.props.mode === "edit";
-    const axisData = this.props.chartSettings || {
-      0: { description: "Oś nr 1" }
-    };
-    const defaultAxisData = head(Object.keys(axisData));
+    const { axisData, defaultAxisData } = this.handleAxisData();
     return (
       <Form
         layout="vertical"
@@ -161,6 +155,12 @@ class UseDataForm extends Component {
               ]
             })(<Input placeholder="Nazwa zestawu danych" />)}
           </Form.Item>
+          <Form.Item>
+            {getFieldDecorator("showDescription", {
+              initialValue: false,
+              valuePropName: "checked"
+            })(<Checkbox>Pokaż opis na wykresie</Checkbox>)}
+          </Form.Item>
           <Form.Item label="Wybór danych">
             {getFieldDecorator("dataSource", {
               rules: [
@@ -172,7 +172,7 @@ class UseDataForm extends Component {
             })(<PathSelect loadedData={this.props.loadedData} />)}
           </Form.Item>
           <Form.Item label="Oś odniesienia">
-            {getFieldDecorator("selectPeriod", {
+            {getFieldDecorator("axis", {
               validateTrigger: ["onChange"],
               rules: [
                 {
@@ -183,7 +183,7 @@ class UseDataForm extends Component {
               initialValue: defaultAxisData
             })(<AxisSelect data={axisData} />)}
           </Form.Item>
-          <Row>
+          <Row gutter={24}>
             <Col span={12}>
               <Form.Item label="Grubość linii">
                 {getFieldDecorator("lineWidth", {
@@ -197,7 +197,15 @@ class UseDataForm extends Component {
                       message: "Wybierz liczbę z zakresu od 1 do 6"
                     }
                   ]
-                })(<InputNumber min={1} max={6} step={1} precision={0} />)}
+                })(
+                  <InputNumber
+                    className="AutoInputNumber"
+                    min={1}
+                    max={6}
+                    step={1}
+                    precision={0}
+                  />
+                )}
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -220,8 +228,8 @@ class UseDataForm extends Component {
               valuePropName: "checked"
             })(<Checkbox>Użyj przerywanej linii</Checkbox>)}
           </Form.Item>
-          {getFieldValue("dashed") && (
-            <Row>
+          <VisibilitySwitch visible={getFieldValue("dashed")}>
+            <Row gutter={24}>
               <Col span={12}>
                 <Form.Item label="Długość kreski">
                   {getFieldDecorator("dashLength", {
@@ -235,7 +243,15 @@ class UseDataForm extends Component {
                         message: "Wybierz liczbę z zakresu od 4 do 15"
                       }
                     ]
-                  })(<InputNumber min={4} max={15} step={1} precision={0} />)}
+                  })(
+                    <InputNumber
+                      className="AutoInputNumber"
+                      min={4}
+                      max={15}
+                      step={1}
+                      precision={0}
+                    />
+                  )}
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -251,18 +267,32 @@ class UseDataForm extends Component {
                         message: "Wybierz liczbę z zakresu od 4 do 15"
                       }
                     ]
-                  })(<InputNumber min={4} max={15} step={1} precision={0} />)}
+                  })(
+                    <InputNumber
+                      className="AutoInputNumber"
+                      min={4}
+                      max={15}
+                      step={1}
+                      precision={0}
+                    />
+                  )}
                 </Form.Item>
               </Col>
             </Row>
-          )}
+          </VisibilitySwitch>
         </div>
         <div className="LoadDataDialogSubmit">
-          <Button onClick={this.handleReset} style={{ marginRight: 16 }}>
-            Zresetuj
-          </Button>
-          <Button type="primary" icon="plus" htmlType="submit">
-            Dodaj dane
+          {!isEdit && (
+            <Button onClick={this.handleReset} style={{ marginRight: 16 }}>
+              Zresetuj
+            </Button>
+          )}
+          <Button
+            type="primary"
+            icon={isEdit ? "redo" : "plus"}
+            htmlType="submit"
+          >
+            {isEdit ? "Aktualizuj" : "Dodaj dane"}
           </Button>
         </div>
       </Form>
@@ -273,8 +303,17 @@ class UseDataForm extends Component {
 const WrappedUseDataForm = Form.create({ name: "use_data_form" })(UseDataForm);
 const WrappedEditUseDataForm = Form.create({
   name: "edit_use_data_form",
-  onFieldsChange(props, changedFields) {
-    props.onChange(changedFields);
+  onValuesChange: async (props, changedFields) => {
+    const toUpdate = Object.keys(changedFields).reduce(
+      (prev, field) => ({
+        ...prev,
+        [field]: {
+          value: changedFields[field]
+        }
+      }),
+      {}
+    );
+    props.onChange(toUpdate);
   },
   mapPropsToFields(props) {
     return Object.keys(props.editedData).reduce(
@@ -292,21 +331,23 @@ class UseDataDialog extends Component {
     mode: PropTypes.string,
     editedData: PropTypes.object,
     loadedData: PropTypes.object,
+    config: PropTypes.object,
     onClose: PropTypes.func,
     loadData: PropTypes.func,
     updateData: PropTypes.func
   };
 
   onUpdateFields = changedFields => {
+    // TODO validacja - przez async wymaga recznego napisania
     const { editedData, updateData } = this.props;
-    const newValue = Object.keys(changedFields).reduce(
-      (prev, key) => ({ ...prev, [key]: changedFields[key].value }),
-      {}
-    );
-    if (newValue !== editedData.fields) {
+    if (changedFields !== editedData.fields) {
+      console.log({
+        ...editedData,
+        fields: { ...editedData.fields, ...changedFields }
+      });
       updateData({
         ...editedData,
-        fields: { ...editedData.fields, ...newValue }
+        fields: { ...editedData.fields, ...changedFields }
       });
     }
   };
@@ -318,6 +359,7 @@ class UseDataDialog extends Component {
       loadedData,
       onClose,
       loadData,
+      config,
       updateData
     } = this.props;
     return (
@@ -329,12 +371,14 @@ class UseDataDialog extends Component {
             updateData={updateData}
             editedData={editedData.fields}
             loadedData={loadedData}
+            config={config}
             onChange={this.onUpdateFields}
           />
         ) : (
           <WrappedUseDataForm
             mode="load"
             onClose={onClose}
+            config={config}
             loadData={loadData}
             loadedData={loadedData}
           />

@@ -1,4 +1,7 @@
 @import "~antd/dist/antd.css";
+body {
+  min-width: 1000px;
+}
 
 .TestField {
   padding: 16px;

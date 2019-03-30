@@ -112,14 +112,15 @@ class ChartSetup extends Component {
               update={this.updateUsedData}
               data={usedData}
               loadedData={loadedData}
+              config={chartConfig}
             />
           </Panel>
           <Panel
-            disabled={!isActiveChartConfig}
+            // disabled={!isActiveChartConfig}
             header="Konfiguracja wykresu"
             key="chartConfig"
           >
-            <ConfigChart update={this.updateChartConfig} data={chartConfig} />
+            <ConfigChart update={this.updateChartConfig} config={chartConfig} />
           </Panel>
         </Collapse>
       </div>

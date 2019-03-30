@@ -1,25 +1,13 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 // imported elements
-import LoadDataDialog from "./LoadDataDialog";
+import DeleteConfirm from "../../Common/DeleteConfirm";
+import LoadDataDialog from "./Dialogs/LoadDataDialog";
 // ant.design
-import { Button, Col, Drawer, Row, Tooltip, Popconfirm } from "antd";
+import { Button, Col, Drawer, Row, Tooltip } from "antd";
 
 const MiddleWrapper = ({ ...props }) => (
   <div className="MiddleWrapper" {...props} />
-);
-
-const DeleteConfirm = ({ ...props }) => (
-  <Popconfirm
-    title={
-      <div className="PopConfirm">
-        Czy na pewno chcesz usunąć zestaw danych?
-      </div>
-    }
-    okText="Tak"
-    cancelText="Nie"
-    {...props}
-  />
 );
 
 class LoadData extends Component {
@@ -68,7 +56,7 @@ class LoadData extends Component {
     const { data, update } = this.props;
     const newValue = { ...data };
     delete newValue[key];
-    update(update(newValue));
+    update(newValue);
   };
 
   updateData = (key, value) => {
@@ -96,10 +84,11 @@ class LoadData extends Component {
             </Col>
             <Col span={4}>
               <MiddleWrapper>
-                <Tooltip placement="bottom" title="Usuń zestaw danych">
+                <Tooltip placement="bottom" title="Usuń załadowane dane">
                   <DeleteConfirm
-                  // onConfirm={confirm}
-                  // onCancel={cancel}
+                    title="Czy chcesz usunąć załadowane dane?"
+                    // onConfirm={confirm}
+                    // onCancel={cancel}
                   >
                     <Button shape="circle" icon="delete" />
                   </DeleteConfirm>

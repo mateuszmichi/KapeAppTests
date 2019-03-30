@@ -1,0 +1,29 @@
+.CustomLabel {
+  text-align: center;
+  height: 100%;
+  width: 100%;
+}
+
+.CustomLabelInner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.CustomLabelRotate {
+  transform: translateX(-50%) translateY(-50%) rotate(-90.1deg);
+  white-space: nowrap;
+}
+
+.CustomLabelTransform {
+  transform: translateX(-50%) translateY(-50%);
+  white-space: nowrap;
+}
+
+.ChartTitle {
+  text-align: center;
+}
+
+text {
+  text-rendering: geometricPrecision;
+}
