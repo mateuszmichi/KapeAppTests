@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/3.6.3/workbox-sw.js");
 
 importScripts(
-  "/KapeAppTests/precache-manifest.88f56fac34506762f608f39ed70e2013.js"
+  "/KapeAppTests/precache-manifest.ca0806b9f92c5a65ecf6fd006320cb25.js"
 );
 
 workbox.clientsClaim();
