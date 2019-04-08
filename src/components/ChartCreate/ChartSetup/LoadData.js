@@ -1,8 +1,10 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
+import { find } from "lodash";
 // imported elements
 import DeleteConfirm from "../../Common/DeleteConfirm";
 import LoadDataDialog from "./Dialogs/LoadDataDialog";
+import { extractDataSource } from "./common";
 // ant.design
 import { Button, Col, Drawer, Row, Tooltip } from "antd";
 
@@ -13,6 +15,7 @@ const MiddleWrapper = ({ ...props }) => (
 class LoadData extends Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
+    usedData: PropTypes.object.isRequired,
     update: PropTypes.func.isRequired
   };
 
@@ -52,6 +55,14 @@ class LoadData extends Component {
     update({ ...data, [this.newIndex()]: newData });
   };
 
+  canRemove = key =>
+    !find(
+      Object.keys(this.props.usedData),
+      i =>
+        extractDataSource(this.props.usedData[i].fields.dataSource.value) ===
+        key
+    );
+
   removeData = key => {
     const { data, update } = this.props;
     const newValue = { ...data };
@@ -73,7 +84,7 @@ class LoadData extends Component {
             <Col span={16}>{data[key].fields.description.value}</Col>
             <Col span={4}>
               <MiddleWrapper>
-                <Tooltip placement="bottom" title="Ustawienia">
+                <Tooltip placement="top" title="Ustawienia">
                   <Button
                     shape="circle"
                     icon="setting"
@@ -84,15 +95,19 @@ class LoadData extends Component {
             </Col>
             <Col span={4}>
               <MiddleWrapper>
-                <Tooltip placement="bottom" title="Usuń załadowane dane">
-                  <DeleteConfirm
-                    title="Czy chcesz usunąć załadowane dane?"
-                    // onConfirm={confirm}
-                    // onCancel={cancel}
-                  >
-                    <Button shape="circle" icon="delete" />
-                  </DeleteConfirm>
-                </Tooltip>
+                <DeleteConfirm
+                  title="Czy chcesz usunąć załadowane dane?"
+                  remove="Usuń załadowane dane"
+                  canRemove={this.canRemove(key)}
+                  reason="Nie można usunąć, dane są w użyciu."
+                  onConfirm={() => this.removeData(key)}
+                >
+                  <Button
+                    disabled={!this.canRemove(key)}
+                    shape="circle"
+                    icon="delete"
+                  />
+                </DeleteConfirm>
               </MiddleWrapper>
             </Col>
           </Row>

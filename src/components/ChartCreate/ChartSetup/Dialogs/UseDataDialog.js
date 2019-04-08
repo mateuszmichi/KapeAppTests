@@ -18,6 +18,8 @@ import {
 } from "antd";
 const { Option } = Select;
 
+// TODO zastosowac MODES
+
 class PathSelect extends Component {
   static propTypes = {
     loadedData: PropTypes.object.isRequired
@@ -27,6 +29,7 @@ class PathSelect extends Component {
     const data = this.props.loadedData;
     return Object.keys(data).map(e => ({
       title: data[e].fields.description.value,
+      value: `${e}`,
       selectable: false,
       key: `${e}`,
       children: data[e].loadedKeys.map(set => ({
@@ -51,7 +54,12 @@ class PathSelect extends Component {
 
 class AxisSelect extends Component {
   static propTypes = {
-    data: PropTypes.object
+    data: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        description: PropTypes.string.isRequired
+      })
+    )
   };
   render() {
     const { data } = this.props;
@@ -86,7 +94,7 @@ class UseDataForm extends Component {
         return;
       }
       if (this.props.mode === "edit") {
-        // TODO strzal / update info
+        this.props.onClose();
       } else {
         this.props.loadData({
           fields: Object.keys(fieldsValue).reduce(
@@ -155,12 +163,6 @@ class UseDataForm extends Component {
               ]
             })(<Input placeholder="Nazwa zestawu danych" />)}
           </Form.Item>
-          <Form.Item>
-            {getFieldDecorator("showDescription", {
-              initialValue: false,
-              valuePropName: "checked"
-            })(<Checkbox>Pokaż opis na wykresie</Checkbox>)}
-          </Form.Item>
           <Form.Item label="Wybór danych">
             {getFieldDecorator("dataSource", {
               rules: [
@@ -182,6 +184,12 @@ class UseDataForm extends Component {
               ],
               initialValue: defaultAxisData
             })(<AxisSelect data={axisData} />)}
+          </Form.Item>
+          <Form.Item>
+            {getFieldDecorator("showRegresion", {
+              initialValue: false,
+              valuePropName: "checked"
+            })(<Checkbox>Pokaż linię regresji</Checkbox>)}
           </Form.Item>
           <Row gutter={24}>
             <Col span={12}>
@@ -300,20 +308,34 @@ class UseDataForm extends Component {
   }
 }
 
+const updateValidationRules = {
+  description: [value => value.length >= 3, value => value.length <= 30],
+  lineWidth: [value => value >= 1, value => value <= 6],
+  dashLength: [value => value >= 4, value => value <= 15],
+  dashSpacing: [value => value >= 4, value => value <= 15]
+};
+
+const validateField = (field, value) =>
+  !updateValidationRules[field] ||
+  updateValidationRules[field].reduce(
+    (result, rule) => result && rule(value),
+    true
+  );
+
+const validateFields = fields =>
+  Object.keys(fields).reduce(
+    (prev, field) => prev && validateField(field, fields[field].value),
+    true
+  );
+
 const WrappedUseDataForm = Form.create({ name: "use_data_form" })(UseDataForm);
 const WrappedEditUseDataForm = Form.create({
   name: "edit_use_data_form",
-  onValuesChange: async (props, changedFields) => {
-    const toUpdate = Object.keys(changedFields).reduce(
-      (prev, field) => ({
-        ...prev,
-        [field]: {
-          value: changedFields[field]
-        }
-      }),
-      {}
-    );
-    props.onChange(toUpdate);
+  onFieldsChange: (props, changedFields) => {
+    if (!validateFields(changedFields)) {
+      return console.warn("Form not valid, abort update");
+    }
+    props.onChange(changedFields);
   },
   mapPropsToFields(props) {
     return Object.keys(props.editedData).reduce(

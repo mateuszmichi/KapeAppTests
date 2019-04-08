@@ -1,7 +1,8 @@
-import React, { Component } from "react";
+import React, { Component, Fragment } from "react";
 import PropTypes from "prop-types";
 // imported elements
 import ColorSelect from "../../../Common/ColorSelect";
+import { MODES } from "../common";
 // ant.design
 import { Checkbox, Form, Row, Col, Input, Button, Select } from "antd";
 const { Option } = Select;
@@ -23,7 +24,7 @@ class AxisSideSelect extends Component {
 
 class AxisForm extends Component {
   static propTypes = {
-    mode: PropTypes.oneOf(["edit", "load"]).isRequired,
+    mode: PropTypes.oneOf([MODES.EDIT, MODES.LOAD]).isRequired,
     editedAxis: PropTypes.object,
     onClose: PropTypes.func,
     loadData: PropTypes.func,
@@ -41,23 +42,26 @@ class AxisForm extends Component {
       if (err) {
         return;
       }
-      if (this.props.mode === "edit") {
-        // TODO strzal / update info
-      } else {
-        this.props.loadData(
-          Object.keys(fieldsValue).reduce(
-            (prev, field) => ({
-              ...prev,
-              [field]: {
-                value: fieldsValue[field]
-              }
-            }),
-            {}
-          )
-        );
-        this.handleReset();
-        this.props.onClose();
-      }
+      ({
+        [MODES.LOAD]: () => {
+          this.props.loadData(
+            Object.keys(fieldsValue).reduce(
+              (prev, field) => ({
+                ...prev,
+                [field]: {
+                  value: fieldsValue[field]
+                }
+              }),
+              {}
+            )
+          );
+          this.handleReset();
+          this.props.onClose();
+        },
+        [MODES.EDIT]: () => {
+          this.props.onClose();
+        }
+      }[this.props.mode]());
     });
   };
 
@@ -195,21 +199,58 @@ class AxisForm extends Component {
           </Form.Item>
         </div>
         <div className="LoadDataDialogSubmit">
-          <Button onClick={this.handleReset} style={{ marginRight: 16 }}>
-            Zresetuj
-          </Button>
-          <Button type="primary" icon="plus" htmlType="submit">
-            Dodaj
-          </Button>
+          {
+            {
+              [MODES.LOAD]: (
+                <Fragment>
+                  <Button
+                    className="ResetFormButton"
+                    onClick={this.handleReset}
+                  >
+                    Zresetuj
+                  </Button>
+                  <Button type="primary" icon="plus" htmlType="submit">
+                    Dodaj
+                  </Button>
+                </Fragment>
+              ),
+              [MODES.EDIT]: (
+                <Button type="primary" icon="redo" htmlType="submit">
+                  Aktualizuj
+                </Button>
+              )
+            }[this.props.mode]
+          }
         </div>
       </Form>
     );
   }
 }
 
+const updateValidationRules = {
+  description: [value => value.length >= 2, value => value.length <= 20],
+  unit: [value => value.length <= 10]
+};
+
+const validateField = (field, value) =>
+  !updateValidationRules[field] ||
+  updateValidationRules[field].reduce(
+    (result, rule) => result && rule(value),
+    true
+  );
+
+const validateFields = fields =>
+  Object.keys(fields).reduce(
+    (prev, field) => prev && validateField(field, fields[field].value),
+    true
+  );
+
 const WrappedEditAxisForm = Form.create({
   name: "edit_axis_form",
   onFieldsChange(props, changedFields) {
+    if (!validateFields(changedFields)) {
+      return console.warn("Form not valid, abort update");
+    }
     props.onChange(changedFields);
   },
   mapPropsToFields(props) {

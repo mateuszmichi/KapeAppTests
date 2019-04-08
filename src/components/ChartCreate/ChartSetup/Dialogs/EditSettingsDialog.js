@@ -12,6 +12,7 @@ class EditSettingsForm extends Component {
 
   handleReset = () => {
     this.props.form.resetFields();
+    this.props.form.validateFields();
   };
 
   render() {
@@ -37,6 +38,12 @@ class EditSettingsForm extends Component {
               initialValue: false,
               valuePropName: "checked"
             })(<Checkbox>Pokaż tytuł na wykresie</Checkbox>)}
+          </Form.Item>
+          <Form.Item>
+            {getFieldDecorator("showLegend", {
+              initialValue: false,
+              valuePropName: "checked"
+            })(<Checkbox>Pokaż legendę na wykresie</Checkbox>)}
           </Form.Item>
           <Form.Item label={`Szerokość (${getFieldValue("width")}%)`}>
             {getFieldDecorator("width", {
@@ -81,9 +88,30 @@ class EditSettingsForm extends Component {
   }
 }
 
+const updateValidationRules = {
+  width: [value => value >= 10, value => value <= 100],
+  height: [value => value >= 10, value => value <= 100]
+};
+
+const validateField = (field, value) =>
+  !updateValidationRules[field] ||
+  updateValidationRules[field].reduce(
+    (result, rule) => result && rule(value),
+    true
+  );
+
+const validateFields = fields =>
+  Object.keys(fields).reduce(
+    (prev, field) => prev && validateField(field, fields[field].value),
+    true
+  );
+
 const WrappedEditSettingsForm = Form.create({
   name: "edit_settings_form",
   onFieldsChange(props, changedFields) {
+    if (!validateFields(changedFields)) {
+      return console.warn("Form not valid, abort update");
+    }
     props.onChange(changedFields);
   },
   mapPropsToFields(props) {

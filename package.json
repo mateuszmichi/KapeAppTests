@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "babel-loader": "8.0.4",
     "@material-ui/core": "^3.9.2",
     "@material-ui/icons": "^3.0.2",
     "antd": "^3.13.6",
+    "babel-loader": "8.0.4",
     "canvg": "^1.5.3",
     "jshint": "^2.9.7",
     "jspdf": "^1.5.3",

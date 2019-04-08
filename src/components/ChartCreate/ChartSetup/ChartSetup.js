@@ -101,7 +101,11 @@ class ChartSetup extends Component {
           bordered={false}
         >
           <Panel header="Pobranie danych" key="loadedData">
-            <LoadData update={this.updateLoadedData} data={loadedData} />
+            <LoadData
+              update={this.updateLoadedData}
+              usedData={usedData}
+              data={loadedData}
+            />
           </Panel>
           <Panel
             disabled={!isActiveUsedData}
@@ -116,11 +120,15 @@ class ChartSetup extends Component {
             />
           </Panel>
           <Panel
-            // disabled={!isActiveChartConfig}
+            disabled={!isActiveChartConfig}
             header="Konfiguracja wykresu"
             key="chartConfig"
           >
-            <ConfigChart update={this.updateChartConfig} config={chartConfig} />
+            <ConfigChart
+              update={this.updateChartConfig}
+              usedData={usedData}
+              config={chartConfig}
+            />
           </Panel>
         </Collapse>
       </div>

@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import DeleteConfirm from "../../Common/DeleteConfirm";
 import UseDataDialog from "./Dialogs/UseDataDialog";
 // ant.design
-import { Button, Col, Drawer, Row, Tooltip, Popconfirm } from "antd";
+import { Button, Col, Drawer, Row, Tooltip } from "antd";
 
 const MiddleWrapper = ({ ...props }) => (
   <div className="MiddleWrapper" {...props} />
@@ -75,7 +75,7 @@ class UseData extends Component {
             <Col span={16}>{data[key].fields.description.value}</Col>
             <Col span={4}>
               <MiddleWrapper>
-                <Tooltip placement="bottom" title="Ustawienia">
+                <Tooltip placement="top" title="Ustawienia">
                   <Button
                     shape="circle"
                     icon="setting"
@@ -86,15 +86,14 @@ class UseData extends Component {
             </Col>
             <Col span={4}>
               <MiddleWrapper>
-                <Tooltip placement="bottom" title="Usuń dane z wykresu">
-                  <DeleteConfirm
-                    title="Usuń dane z wykresu"
-                    // onConfirm={confirm}
-                    // onCancel={cancel}
-                  >
-                    <Button shape="circle" icon="delete" />
-                  </DeleteConfirm>
-                </Tooltip>
+                <DeleteConfirm
+                  title="Usuń dane z wykresu"
+                  remove="Usuń z wykresu"
+                  canRemove={true}
+                  onConfirm={() => this.removeData(key)}
+                >
+                  <Button shape="circle" icon="delete" />
+                </DeleteConfirm>
               </MiddleWrapper>
             </Col>
           </Row>

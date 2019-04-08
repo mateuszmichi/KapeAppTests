@@ -15,6 +15,9 @@ const defaultChartConfig = {
     showTitle: {
       value: false
     },
+    showLegend: {
+      value: false
+    },
     height: {
       value: 60
     },
@@ -152,9 +155,7 @@ class ChartCreate extends Component {
             <div className="ChartPresentation">
               {Object.keys(mapSetupResult.usedData).length > 0 ? (
                 <ResponsiveLineChart
-                  stopInteractive={true}
-                  width="100%"
-                  height={300}
+                  stopInteractive={false}
                   {...mapSetupResult}
                 />
               ) : (

@@ -34,3 +34,29 @@
 .ChartPresentation {
   padding: 0px 24px;
 }
+
+.ResetFormButton {
+  margin-right: 16px;
+}
+
+.ant-empty {
+  padding: 40px 0px;
+}
+
+.ChartSetup .ant-collapse-header {
+  font-size: 1rem;
+}
+
+.LoadData .ant-row-flex + .ant-row-flex {
+  padding-top: 8px;
+}
+
+.ConfigChartSection {
+  padding: 8px 0;
+  margin-top: 16px;
+  font-weight: bold;
+  background: linear-gradient(to right, #999 0%, #999 50%, #fff 50%, #fff 100%);
+  background-position: top right;
+  background-repeat: repeat-x;
+  background-size: 10px 1px;
+}

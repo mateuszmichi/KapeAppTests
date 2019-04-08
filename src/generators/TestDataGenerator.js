@@ -1,3 +1,5 @@
+import moment from "moment";
+
 export const RandomSerie = ({
   from = 10,
   to = 15,
@@ -25,10 +27,12 @@ export const DataSetLabel = ({
   dataSetEnd = 50
 }) => {
   const result = [];
+  const begin = moment("2019-03-22");
   for (let i = 0; i < dataSets; i++) {
     result.push({
-      time: dataSetBegin + ((dataSetEnd - dataSetBegin) * i) / (dataSets - 1)
+      time: begin.format("x")
     });
+    begin.add(1, "hours");
   }
   return result;
 };

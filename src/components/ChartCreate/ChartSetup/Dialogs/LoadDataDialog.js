@@ -206,7 +206,12 @@ class LoadDataForm extends Component {
     await timeout(2000);
     const Generator = {};
     fields.measurements.forEach(e => {
-      Generator[e] = () => RandomSerie({});
+      Generator[e] = () =>
+        RandomSerie({
+          from: 10 + 14 * Math.random(),
+          to: 20 + 6 * Math.random(),
+          waveScale: 0.3 * Math.random()
+        });
     });
     return TestDataGenerator(Generator);
   };
@@ -510,12 +515,33 @@ class LoadDataForm extends Component {
   }
 }
 
+const updateValidationRules = {
+  description: [value => value.length >= 3, value => value.length <= 30],
+  measurements: [value => filterOutAll(value).length !== 0]
+};
+
+const validateField = (field, value) =>
+  !updateValidationRules[field] ||
+  updateValidationRules[field].reduce(
+    (result, rule) => result && rule(value),
+    true
+  );
+
+const validateFields = fields =>
+  Object.keys(fields).reduce(
+    (prev, field) => prev && validateField(field, fields[field].value),
+    true
+  );
+
 const WrappedLoadDataForm = Form.create({ name: "load_data_form" })(
   LoadDataForm
 );
 const WrappedEditDataForm = Form.create({
   name: "edit_data_form",
   onFieldsChange(props, changedFields) {
+    if (!validateFields(changedFields)) {
+      return console.warn("Form not valid, abort update");
+    }
     props.onChange(changedFields);
   },
   mapPropsToFields(props) {

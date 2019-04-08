@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, PureComponent } from "react";
 import {
   LineChart,
   XAxis,
@@ -7,11 +7,16 @@ import {
   CartesianGrid,
   Label,
   Legend,
+  Tooltip,
   ResponsiveContainer
 } from "recharts";
 import PropTypes from "prop-types";
-import { find } from "lodash";
-import { Tooltip } from "antd";
+import { find, filter } from "lodash";
+import moment from "moment";
+// imports
+import { chartRangesFromConfig, dateTicks, regresion } from "./calculate";
+// ant.design
+import { Row, Col } from "antd";
 // css
 import "../../css/Charts/LineChart.css";
 
@@ -19,7 +24,8 @@ const settingsType = {
   height: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
   title: PropTypes.string.isRequired,
-  showTitle: PropTypes.bool.isRequired
+  showTitle: PropTypes.bool.isRequired,
+  showLegend: PropTypes.bool.isRequired
 };
 
 const withDescriptionType = {
@@ -52,7 +58,7 @@ const yAxisType = {
 };
 
 const usedDataType = {
-  ...withDescriptionType,
+  description: PropTypes.string.isRequired,
   ...withIdType,
   axis: PropTypes.string.isRequired,
   dashed: PropTypes.bool.isRequired,
@@ -77,6 +83,7 @@ const chartConfigType = {
 const CustomYAxis = ({
   description,
   showDescription,
+  dataSpread,
   id,
   color,
   showAxis,
@@ -86,30 +93,40 @@ const CustomYAxis = ({
   rangeTo,
   rangeSpan,
   ...props
-}) => (
-  <YAxis
-    yAxisId={id}
-    hide={!showAxis}
-    orientation={side}
-    stroke={color}
-    type="number"
-    // domain TODO
-    label={
-      showDescription
-        ? props => (
-            <CustomYLabel
-              description={description}
-              color={color}
-              unit={unit}
-              side={side}
-              {...props}
-            />
-          )
-        : undefined
-    }
-    {...props}
-  />
-);
+}) => {
+  const { domainMin, domainMax, ticks } = chartRangesFromConfig(dataSpread, {
+    rangeFrom,
+    rangeTo,
+    rangeSpan
+  });
+  return (
+    <YAxis
+      allowDataOverflow={true}
+      yAxisId={id}
+      hide={!showAxis}
+      orientation={side}
+      stroke={color}
+      type="number"
+      width={showDescription ? 60 : 45}
+      domain={[domainMin, domainMax]}
+      ticks={ticks}
+      label={
+        showDescription
+          ? props => (
+              <CustomYLabel
+                description={description}
+                color={color}
+                unit={unit}
+                side={side}
+                {...props}
+              />
+            )
+          : undefined
+      }
+      {...props}
+    />
+  );
+};
 
 const CustomYLabel = ({ description, side, unit, color, ...props }) => {
   const { x, y, height, width } = props.viewBox;
@@ -147,19 +164,62 @@ const CustomXLabel = ({ description, color, ...props }) => {
   );
 };
 
+const formatDate = timestamp =>
+  moment.unix(timestamp / 1000).format("YYYY-MM-DD");
+const formatHour = timestamp => moment.unix(timestamp / 1000).format("HH:mm");
+
+class CustomizedXAxisTick extends PureComponent {
+  render() {
+    const { x, y, payload, withTime } = this.props;
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={16} textAnchor="middle" fill="#666">
+          {formatDate(payload.value)}
+        </text>
+        {withTime && (
+          <text x={0} y={16} dy={16} textAnchor="middle" fill="#666">
+            {formatHour(payload.value)}
+          </text>
+        )}
+      </g>
+    );
+  }
+}
+
+const xAxisHeight = (showDescription, withTime) =>
+  30 + (showDescription ? 20 : 0) + (withTime ? 16 : 0);
+
 const CustomXAxis = ({
   description,
   showDescription,
   color,
   withTime,
   datesNumber,
+  timeSpread,
   ...props
 }) => (
   <XAxis
+    allowDataOverflow={true}
+    padding={{
+      left: 10,
+      right: 30
+    }}
+    tick={<CustomizedXAxisTick withTime={withTime} />}
+    interval={0}
     dataKey="time"
     type="number"
     stroke={color}
-    height={showDescription ? 45 : 30}
+    height={xAxisHeight(showDescription, withTime)}
+    domain={["dataMin", "dataMax"]}
+    ticks={dateTicks(
+      {
+        dateFrom: Math.min(...timeSpread),
+        dateTo: Math.max(...timeSpread)
+      },
+      datesNumber,
+      withTime
+    )}
     label={
       showDescription
         ? props => (
@@ -171,11 +231,19 @@ const CustomXAxis = ({
   />
 );
 
-const extractDataFromPath = (data, path) => {
+const extractDataSource = path => {
   const tab = path.split("-");
-  const sourceId = tab[0];
-  const result = find(data, e => e.id === sourceId).data;
-  return console.log(result) || result;
+  return tab[0];
+};
+
+const generateRegresionKey = (path, id) => `REG_${id}_${extractDataKey(path)}`;
+
+const generateRegresionPath = (path, id) =>
+  `${extractDataSource(path)}-${generateRegresionKey(path, id)}`;
+
+const extractDataFromPath = (data, path) => {
+  const sourceId = extractDataSource(path);
+  return find(data, e => e.id === sourceId).data;
 };
 
 const extractDataKey = path => {
@@ -183,10 +251,20 @@ const extractDataKey = path => {
   return tab.pop();
 };
 
+const regresionSettings = {
+  activeDot: false,
+  lineWidth: 1,
+  dashed: true,
+  dashSpacing: 5,
+  dashLength: 5
+};
+
 const CustomLine = ({
+  yAxises,
   dataSet,
   description,
   showDescription,
+  lineId,
   axis,
   dashed,
   dashSpacing,
@@ -197,12 +275,16 @@ const CustomLine = ({
   ...props
 }) => (
   <Line
+    unit={(e => e && e.unit)(find(yAxises, e => e.id === axis))}
+    name={description}
+    lineId={lineId}
     isAnimationActive={false}
     strokeDasharray={dashed ? `${dashLength} ${dashSpacing}` : undefined}
     strokeWidth={lineWidth}
     type="monotone"
     stroke={lineColor}
     dot={false}
+    activeDot={true}
     data={extractDataFromPath(dataSet, dataSource)}
     dataKey={extractDataKey(dataSource)}
     yAxisId={axis}
@@ -210,12 +292,134 @@ const CustomLine = ({
   />
 );
 
+const CustomTooltip = ({ active, payload, label, withTime, ...props }) => {
+  if (active) {
+    return (
+      <div className="CustomTooltip">
+        <div className="CTTime">
+          {`${formatDate(label)} ${withTime ? `${formatHour(label)}` : ""}`}
+        </div>
+        {filter(payload, e => !e.dataKey.startsWith("REG_")).map((e, i) => (
+          <div className="CTProperty" key={i}>
+            <div className="CTFeature">{e.name}</div>
+            <div className="CTValue">{`${e.payload[e.dataKey]} ${e.unit}`}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const dataFromAxis = (data, usedData, axis) =>
+  filter(usedData, e => e.axis === axis).reduce(
+    (prev, used) => [
+      ...prev,
+      ...extractDataFromPath(data, used.dataSource).map(item =>
+        Number.parseFloat(item[extractDataKey(used.dataSource)])
+      )
+    ],
+    []
+  );
+
+const timeFromData = (data, usedData) =>
+  usedData.reduce(
+    (prev, used) => [
+      ...prev,
+      ...extractDataFromPath(data, used.dataSource).map(item =>
+        Number.parseFloat(item.time)
+      )
+    ],
+    []
+  );
+
+const generateRegresionValue = (dataSet, path) => {
+  const xData = dataSet.map(e => parseFloat(e.time));
+  const yData = dataSet.map(e => parseFloat(e[extractDataKey(path)]));
+  return regresion(xData, yData);
+};
+
+const genRegresionValue = (dataSet, path, id) => {
+  const { a, b } = generateRegresionValue(dataSet, path);
+  return dataSet.map(item => ({
+    ...item,
+    [generateRegresionKey(path, id)]: a * item.time + b
+  }));
+};
+
+const addRegresionValues = (data, usedData) => {
+  usedData
+    .filter(e => e.showRegresion)
+    .forEach(({ dataSource, id }) => {
+      const sourceId = extractDataSource(dataSource);
+      const i = data.findIndex(e => e.id === sourceId);
+      console.log("reg", i, data, usedData);
+      data[i] = {
+        ...data[i],
+        data: genRegresionValue(data[i].data, dataSource, id)
+      };
+    });
+};
+
+const RegresionSummary = ({ data, usedData, withTime }) => {
+  const calculate = filter(usedData, e => e.showRegresion).map(
+    ({ dataSource, id, description }) => {
+      const sourceId = extractDataSource(dataSource);
+      const i = data.findIndex(e => e.id === sourceId);
+      const { a, b } = generateRegresionValue(data[i].data, dataSource);
+      return {
+        description,
+        a,
+        begin: data[i].data[0].time,
+        b: b + a * data[i].data[0].time
+      };
+    }
+  );
+  const msInHour = 1000 * 60 * 60;
+  return calculate.length > 0 ? (
+    <div className="RegresionSummary">
+      <div className="Title">Regresja liniowa</div>
+      <Row gutter={16}>
+        {calculate.map((e, i) => (
+          <Col span={12} key={i}>
+            <div className="RegresionValue">
+              <div className="CTProperty">
+                <div className="CTFeature">Źródło danych</div>
+                <div className="CTValue">{e.description}</div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">Wzór</div>
+                <div className="CTValue">
+                  {`( ${(
+                    e.a * (withTime ? msInHour : msInHour * 24)
+                  ).toExponential(4)} ) x czas + ${e.b.toFixed(2)}`}
+                </div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">Jednostka</div>
+                <div className="CTValue">
+                  {`Czas liczony w ${withTime ? "godzinach" : "dobach"}`}
+                </div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">Początek (czas = 0)</div>
+                <div className="CTValue">
+                  {moment
+                    .unix(e.begin / 1000)
+                    .format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD")}
+                </div>
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+    </div>
+  ) : null;
+};
+
 class ResponsiveLineChart extends Component {
   static propTypes = {
     stopInteractive: PropTypes.bool,
-    width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    height: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
-      .isRequired,
     // Ustawienia
     chartConfig: PropTypes.shape(chartConfigType).isRequired,
     usedData: PropTypes.arrayOf(PropTypes.shape(usedDataType)).isRequired,
@@ -226,36 +430,84 @@ class ResponsiveLineChart extends Component {
     console.log("passed to chart", this.props);
     const { stopInteractive, usedData, data, chartConfig } = this.props;
     const { xAxis, settings, yAxises } = chartConfig;
+    const { height, width } = chartConfig.settings;
+
+    addRegresionValues(data, usedData);
+    console.log("after regresion", data);
+    // console.log(
+    //   "Wyliczenia dla wykresu",
+    //   chartRangesFromConfing()
+    // )
+    // TODO!!!
+    // Wyciagniecie danych z axis po data i dopiero przekazac
     return (
       <div className="LineChart">
-        {settings.showTitle && (
-          <div className="ChartTitle">{settings.title}</div>
-        )}
-        <ResponsiveContainer
-          width={this.props.width}
-          height={this.props.height}
+        <div
+          className="InnerChart"
+          style={{
+            width: `${width}%`
+          }}
         >
-          <LineChart data={data}>
-            <Legend />
-            <CartesianGrid />
-            {CustomXAxis(xAxis)}
-            {// WONTFIX recharts ma problem z przeciazaniem komponentow
-            yAxises.map(yAxis =>
-              CustomYAxis({
-                ...yAxis,
-                key: `yAxis-${yAxis.id}`
-              })
-            )}
-            {usedData.map(({ id, ...used }) =>
-              CustomLine({
-                ...used,
-                dataSet: data,
-                key: `usedData-${id}`
-              })
-            )}
-            <Tooltip />
-          </LineChart>
-        </ResponsiveContainer>
+          {settings.showTitle && (
+            <div className="ChartTitle">{settings.title}</div>
+          )}
+          <ResponsiveContainer width={"100%"} aspect={width / height}>
+            <LineChart data={data}>
+              {!stopInteractive && (
+                <Tooltip
+                  content={<CustomTooltip withTime={xAxis.withTime} />}
+                />
+              )}
+              {settings.showLegend && (
+                <Legend
+                  height={36}
+                  verticalAlign="top"
+                  paylodUniqBy={({ payload }) => payload.lineId}
+                />
+              )}
+              <CartesianGrid vertical={false} strokeDasharray="5 5" />
+              {CustomXAxis({
+                ...xAxis,
+                timeSpread: timeFromData(data, usedData)
+              })}
+              {// WONTFIX recharts ma problem z przeciazaniem komponentow
+              yAxises.map(yAxis =>
+                CustomYAxis({
+                  ...yAxis,
+                  key: `yAxis-${yAxis.id}`,
+                  dataSpread: dataFromAxis(data, usedData, yAxis.id)
+                })
+              )}
+              {filter(usedData, e => e.showRegresion).map(
+                ({ id, dataSource, ...used }) =>
+                  CustomLine({
+                    yAxises,
+                    ...used,
+                    dataSource: generateRegresionPath(dataSource, id),
+                    lineId: id,
+                    regresion: true,
+                    dataSet: data,
+                    key: `regresionLine-${id}`,
+                    ...regresionSettings
+                  })
+              )}
+              {usedData.map(({ id, ...used }) =>
+                CustomLine({
+                  yAxises,
+                  ...used,
+                  lineId: id,
+                  dataSet: data,
+                  key: `usedData-${id}`
+                })
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <RegresionSummary
+          data={data}
+          usedData={usedData}
+          withTime={xAxis.withTime}
+        />
       </div>
     );
   }

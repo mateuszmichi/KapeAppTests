@@ -2,6 +2,7 @@
   text-align: center;
   height: 100%;
   width: 100%;
+  font-size: 1rem;
 }
 
 .CustomLabelInner {
@@ -22,8 +23,61 @@
 
 .ChartTitle {
   text-align: center;
+  font-size: 1.5rem;
+  padding-bottom: 4px;
 }
 
 text {
   text-rendering: geometricPrecision;
+}
+
+.LineChart {
+  position: relative;
+  width: 100%;
+}
+
+.InnerChart {
+  margin: auto;
+}
+
+.CustomTooltip {
+  background: white;
+  border: solid 1px #d4d4d4;
+  border-radius: 4px;
+  padding: 8px 8px 16px 8px;
+  min-width: 120px;
+  display: table;
+}
+
+.CTTime {
+  font-weight: bold;
+}
+
+.CTProperty {
+  display: table-row;
+}
+
+.CTFeature {
+  display: table-cell;
+  padding-right: 8px;
+}
+
+.CTValue {
+  display: table-cell;
+  text-align: right;
+}
+
+.RegresionSummary {
+  padding: 0px 56px;
+  font-size: 0.9rem;
+}
+
+.RegresionSummary .Title {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.RegresionValue {
+  display: table;
+  padding-top: 16px;
 }

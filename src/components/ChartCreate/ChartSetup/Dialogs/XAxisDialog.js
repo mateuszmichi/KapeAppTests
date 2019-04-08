@@ -118,9 +118,30 @@ class XAxisForm extends Component {
   }
 }
 
+const updateValidationRules = {
+  description: [value => value.length >= 2, value => value.length <= 20],
+  datesNumber: [value => value >= 2, value => value <= 8]
+};
+
+const validateField = (field, value) =>
+  !updateValidationRules[field] ||
+  updateValidationRules[field].reduce(
+    (result, rule) => result && rule(value),
+    true
+  );
+
+const validateFields = fields =>
+  Object.keys(fields).reduce(
+    (prev, field) => prev && validateField(field, fields[field].value),
+    true
+  );
+
 const WrappedXAxisForm = Form.create({
   name: "edit_xaxis_form",
   onFieldsChange(props, changedFields) {
+    if (!validateFields(changedFields)) {
+      return console.warn("Form not valid, abort update");
+    }
     props.onChange(changedFields);
   },
   mapPropsToFields(props) {

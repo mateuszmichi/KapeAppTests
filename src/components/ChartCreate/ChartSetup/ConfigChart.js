@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
+import { find } from "lodash";
 // imported elements
 import AxisDialog from "./Dialogs/AxisDialog";
 import XAxisDialog from "./Dialogs/XAxisDialog";
@@ -19,6 +20,7 @@ class ConfigChart extends Component {
       xAxis: PropTypes.object,
       yAxises: PropTypes.object
     }).isRequired,
+    usedData: PropTypes.object.isRequired,
     update: PropTypes.func.isRequired
   };
 
@@ -80,6 +82,12 @@ class ConfigChart extends Component {
     update(ncofig);
   };
 
+  canRemove = key =>
+    !find(
+      Object.keys(this.props.usedData),
+      i => this.props.usedData[i].fields.axis.value === key
+    );
+
   removeAxis = axisId => {
     const { config, update } = this.props;
     const ncofig = { ...config };
@@ -105,12 +113,12 @@ class ConfigChart extends Component {
     const { config } = this.props;
     const { editedAxis } = this.state;
     return (
-      <div className="ConfigChart">
+      <div className="LoadData">
         <Row type="flex" align="middle">
           <Col span={16}>Konfiguracja ogólna wykresu</Col>
           <Col span={4}>
             <MiddleWrapper>
-              <Tooltip placement="bottom" title="Edytuj wygląd wykresu">
+              <Tooltip placement="top" title="Edytuj wygląd wykresu">
                 <Button
                   type="primary"
                   shape="circle"
@@ -122,13 +130,13 @@ class ConfigChart extends Component {
           </Col>
         </Row>
         <Row>
-          <span>Oś pozioma</span>
+          <div className="ConfigChartSection">Oś pozioma</div>
         </Row>
         <Row type="flex" align="middle">
           <Col span={16}>Oś pozioma (czasu)</Col>
           <Col span={4}>
             <MiddleWrapper>
-              <Tooltip placement="bottom" title="Edytuj oś czasu">
+              <Tooltip placement="top" title="Edytuj oś czasu">
                 <Button
                   shape="circle"
                   icon="setting"
@@ -139,14 +147,14 @@ class ConfigChart extends Component {
           </Col>
         </Row>
         <Row>
-          <span>Osie pionowe</span>
+          <div className="ConfigChartSection">Osie pionowe</div>
         </Row>
         {Object.keys(config.yAxises).map((key, i, axes) => (
           <Row key={key} type="flex" align="middle">
             <Col span={16}>{config.yAxises[key].description.value}</Col>
             <Col span={4}>
               <MiddleWrapper>
-                <Tooltip placement="bottom" title="Ustawienia">
+                <Tooltip placement="top" title="Ustawienia">
                   <Button
                     shape="circle"
                     icon="setting"
@@ -156,19 +164,21 @@ class ConfigChart extends Component {
               </MiddleWrapper>
             </Col>
             <Col span={4}>
-              {axes.length > 1 && (
-                <MiddleWrapper>
-                  <Tooltip placement="bottom" title="Usuń zestaw danych">
-                    <DeleteConfirm
-                      title="Czy chcesz usunąć oś odniesienia?"
-                      // onConfirm={confirm}
-                      // onCancel={cancel}
-                    >
-                      <Button shape="circle" icon="delete" />
-                    </DeleteConfirm>
-                  </Tooltip>
-                </MiddleWrapper>
-              )}
+              <MiddleWrapper>
+                <DeleteConfirm
+                  title="Czy chcesz usunąć oś odniesienia?"
+                  remove="Usuń oś"
+                  reason="Nie można usunąć, oś jest używana."
+                  canRemove={this.canRemove(key)}
+                  onConfirm={() => this.removeAxis(key)}
+                >
+                  <Button
+                    disabled={!this.canRemove(key)}
+                    shape="circle"
+                    icon="delete"
+                  />
+                </DeleteConfirm>
+              </MiddleWrapper>
             </Col>
           </Row>
         ))}
@@ -232,7 +242,7 @@ class ConfigChart extends Component {
         >
           <AxisDialog
             mode="load"
-            onClose={this.onCloseDialogSettings}
+            onClose={this.onCloseDialogAddAxis}
             settings={config.settings}
             loadData={this.addAxis}
           />
@@ -250,7 +260,7 @@ class ConfigChart extends Component {
           >
             <AxisDialog
               mode="edit"
-              onClose={this.onCloseDialogSettings}
+              onClose={this.onCloseDialogEditAxis}
               updateData={newAxis => this.updateAxis(newAxis, editedAxis)}
               editedAxis={config.yAxises[editedAxis]}
             />
