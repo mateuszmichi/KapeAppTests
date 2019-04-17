@@ -126,6 +126,7 @@ class ChartSetup extends Component {
           >
             <ConfigChart
               update={this.updateChartConfig}
+              loadedData={loadedData}
               usedData={usedData}
               config={chartConfig}
             />

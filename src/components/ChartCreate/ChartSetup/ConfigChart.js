@@ -21,6 +21,7 @@ class ConfigChart extends Component {
       yAxises: PropTypes.object
     }).isRequired,
     usedData: PropTypes.object.isRequired,
+    loadedData: PropTypes.object.isRequired,
     update: PropTypes.func.isRequired
   };
 
@@ -110,7 +111,7 @@ class ConfigChart extends Component {
   };
 
   render() {
-    const { config } = this.props;
+    const { config, loadedData, usedData } = this.props;
     const { editedAxis } = this.state;
     return (
       <div className="LoadData">
@@ -227,6 +228,8 @@ class ConfigChart extends Component {
           <XAxisDialog
             onClose={this.onCloseDialogXAxis}
             editedAxis={config.xAxis}
+            loadedData={loadedData}
+            usedData={usedData}
             updateData={this.updateXAxis}
           />
         </Drawer>

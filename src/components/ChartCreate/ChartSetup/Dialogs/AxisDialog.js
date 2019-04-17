@@ -109,32 +109,7 @@ class AxisForm extends Component {
               valuePropName: "checked"
             })(<Checkbox>Pokaż nazwę osi na wykresie</Checkbox>)}
           </Form.Item>
-          <Form.Item label="Jednostka">
-            {getFieldDecorator("unit", {
-              initialValue: "",
-              rules: [
-                {
-                  message: "Maksymalna długość to 10 znaków",
-                  whitespace: true,
-                  max: 10
-                }
-              ]
-            })(<Input placeholder="Jednostka" />)}
-          </Form.Item>
           <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="Miejsce wyświetlania">
-                {getFieldDecorator("side", {
-                  rules: [
-                    {
-                      required: true,
-                      message: "Wybierz miejsce wyświetlania"
-                    }
-                  ],
-                  initialValue: "left"
-                })(<AxisSideSelect />)}
-              </Form.Item>
-            </Col>
             <Col span={12}>
               <Form.Item label="Kolor osi">
                 {getFieldDecorator("color", {
@@ -149,7 +124,32 @@ class AxisForm extends Component {
                 })(<ColorSelect />)}
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item label="Miejsce wyświetlania">
+                {getFieldDecorator("side", {
+                  rules: [
+                    {
+                      required: true,
+                      message: "Wybierz miejsce wyświetlania"
+                    }
+                  ],
+                  initialValue: "left"
+                })(<AxisSideSelect />)}
+              </Form.Item>
+            </Col>
           </Row>
+          <Form.Item label="Jednostka">
+            {getFieldDecorator("unit", {
+              initialValue: "",
+              rules: [
+                {
+                  message: "Maksymalna długość to 10 znaków",
+                  whitespace: true,
+                  max: 10
+                }
+              ]
+            })(<Input placeholder="Jednostka" />)}
+          </Form.Item>
           <Form.Item
             label="Zarządzanie zakresem danych"
             help="Aby ustawić automatyczne wyliczanie, wpisz auto"

@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { filter } from "lodash";
 // css
 import "../../css/ChartCreate.css";
 // imported elements
@@ -40,6 +41,21 @@ const defaultChartConfig = {
     },
     withTime: {
       value: false
+    },
+    keyType: {
+      value: "time"
+    },
+    unit: {
+      value: ""
+    },
+    rangeFrom: {
+      value: "auto"
+    },
+    rangeTo: {
+      value: "auto"
+    },
+    rangeSpan: {
+      value: "auto"
     }
   },
   yAxises: {
@@ -93,6 +109,12 @@ class ChartCreate extends Component {
     console.log("loadedData", loadedData);
     console.log("usedData", usedData);
     console.log("chartConfig", chartConfig);
+
+    const xAxisMapper = {
+      common: ["color", "description", "showDescription"],
+      time: ["datesNumber", "withTime"],
+      other: ["rangeFrom", "rangeTo", "rangeSpan", "unit", "xKey"]
+    };
     return {
       usedData: Object.keys(usedData).reduce(
         (result, key) => [
@@ -113,14 +135,23 @@ class ChartCreate extends Component {
             ...prev,
             [fieldKey]: chartConfig.settings[fieldKey].value
           }),
-          {}
+          {
+            stopInteractive: false
+          }
         ),
-        xAxis: Object.keys(chartConfig.xAxis).reduce(
+        xAxis: filter(Object.keys(chartConfig.xAxis), e =>
+          [
+            ...xAxisMapper.common,
+            ...xAxisMapper[chartConfig.xAxis.keyType.value]
+          ].includes(e)
+        ).reduce(
           (prev, fieldKey) => ({
             ...prev,
             [fieldKey]: chartConfig.xAxis[fieldKey].value
           }),
-          {}
+          {
+            xKey: "time"
+          }
         ),
         yAxises: Object.keys(chartConfig.yAxises).reduce(
           (result, key) => [
@@ -154,10 +185,7 @@ class ChartCreate extends Component {
           <Col span={16}>
             <div className="ChartPresentation">
               {Object.keys(mapSetupResult.usedData).length > 0 ? (
-                <ResponsiveLineChart
-                  stopInteractive={false}
-                  {...mapSetupResult}
-                />
+                <ResponsiveLineChart {...mapSetupResult} />
               ) : (
                 <Empty
                   image="https://gw.alipayobjects.com/mdn/miniapp_social/afts/img/A*pevERLJC9v0AAAAAAAAAAABjAQAAAQ/original"

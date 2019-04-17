@@ -62,9 +62,9 @@ class AxisSelect extends Component {
     )
   };
   render() {
-    const { data } = this.props;
+    const { data, ...props } = this.props;
     return (
-      <Select {...this.props}>
+      <Select {...props}>
         {data.map(({ id, description }) => (
           <Option key={id} value={id}>
             {description}
@@ -191,71 +191,32 @@ class UseDataForm extends Component {
               valuePropName: "checked"
             })(<Checkbox>Pokaż linię regresji</Checkbox>)}
           </Form.Item>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="Grubość linii">
-                {getFieldDecorator("lineWidth", {
-                  initialValue: 2,
-                  rules: [
-                    {
-                      required: true,
-                      type: "number",
-                      min: 1,
-                      max: 6,
-                      message: "Wybierz liczbę z zakresu od 1 do 6"
-                    }
-                  ]
-                })(
-                  <InputNumber
-                    className="AutoInputNumber"
-                    min={1}
-                    max={6}
-                    step={1}
-                    precision={0}
-                  />
-                )}
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Kolor linii">
-                {getFieldDecorator("lineColor", {
-                  initialValue: "black",
-                  rules: [
-                    {
-                      required: true,
-                      message: "Wybierz kolor linii"
-                    }
-                  ]
-                })(<ColorSelect />)}
-              </Form.Item>
-            </Col>
-          </Row>
           <Form.Item>
-            {getFieldDecorator("dashed", {
+            {getFieldDecorator("dotted", {
               initialValue: false,
               valuePropName: "checked"
-            })(<Checkbox>Użyj przerywanej linii</Checkbox>)}
+            })(<Checkbox>Pokaż jako zbiór punktów</Checkbox>)}
           </Form.Item>
-          <VisibilitySwitch visible={getFieldValue("dashed")}>
+          <VisibilitySwitch visible={!getFieldValue("dotted")}>
             <Row gutter={24}>
               <Col span={12}>
-                <Form.Item label="Długość kreski">
-                  {getFieldDecorator("dashLength", {
-                    initialValue: 5,
+                <Form.Item label="Grubość linii">
+                  {getFieldDecorator("lineWidth", {
+                    initialValue: 2,
                     rules: [
                       {
                         required: true,
                         type: "number",
-                        min: 4,
-                        max: 15,
-                        message: "Wybierz liczbę z zakresu od 4 do 15"
+                        min: 1,
+                        max: 6,
+                        message: "Wybierz liczbę z zakresu od 1 do 6"
                       }
                     ]
                   })(
                     <InputNumber
                       className="AutoInputNumber"
-                      min={4}
-                      max={15}
+                      min={1}
+                      max={6}
                       step={1}
                       precision={0}
                     />
@@ -263,30 +224,77 @@ class UseDataForm extends Component {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="Długość przerwy">
-                  {getFieldDecorator("dashSpacing", {
-                    initialValue: 5,
+                <Form.Item label="Kolor linii">
+                  {getFieldDecorator("lineColor", {
+                    initialValue: "black",
                     rules: [
                       {
                         required: true,
-                        type: "number",
-                        min: 4,
-                        max: 15,
-                        message: "Wybierz liczbę z zakresu od 4 do 15"
+                        message: "Wybierz kolor linii"
                       }
                     ]
-                  })(
-                    <InputNumber
-                      className="AutoInputNumber"
-                      min={4}
-                      max={15}
-                      step={1}
-                      precision={0}
-                    />
-                  )}
+                  })(<ColorSelect />)}
                 </Form.Item>
               </Col>
             </Row>
+            <Form.Item>
+              {getFieldDecorator("dashed", {
+                initialValue: false,
+                valuePropName: "checked"
+              })(<Checkbox>Użyj przerywanej linii</Checkbox>)}
+            </Form.Item>
+            <VisibilitySwitch visible={getFieldValue("dashed")}>
+              <Row gutter={24}>
+                <Col span={12}>
+                  <Form.Item label="Długość kreski">
+                    {getFieldDecorator("dashLength", {
+                      initialValue: 5,
+                      rules: [
+                        {
+                          required: true,
+                          type: "number",
+                          min: 4,
+                          max: 15,
+                          message: "Wybierz liczbę z zakresu od 4 do 15"
+                        }
+                      ]
+                    })(
+                      <InputNumber
+                        className="AutoInputNumber"
+                        min={4}
+                        max={15}
+                        step={1}
+                        precision={0}
+                      />
+                    )}
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Długość przerwy">
+                    {getFieldDecorator("dashSpacing", {
+                      initialValue: 5,
+                      rules: [
+                        {
+                          required: true,
+                          type: "number",
+                          min: 4,
+                          max: 15,
+                          message: "Wybierz liczbę z zakresu od 4 do 15"
+                        }
+                      ]
+                    })(
+                      <InputNumber
+                        className="AutoInputNumber"
+                        min={4}
+                        max={15}
+                        step={1}
+                        precision={0}
+                      />
+                    )}
+                  </Form.Item>
+                </Col>
+              </Row>
+            </VisibilitySwitch>
           </VisibilitySwitch>
         </div>
         <div className="LoadDataDialogSubmit">

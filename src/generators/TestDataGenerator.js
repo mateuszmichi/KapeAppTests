@@ -17,7 +17,7 @@ export const RandomSerie = ({
       ((to - from) * i) / (dataSets - 1) +
       Math.sin(((i / (dataSets - 1)) * 2 * Math.PI) / wavePeriod) * waveScale +
       rand * Math.random();
-    result.push(generated.toFixed(2));
+    result.push(parseFloat(generated.toFixed(2)));
   }
   return result;
 };
@@ -27,10 +27,11 @@ export const DataSetLabel = ({
   dataSetEnd = 50
 }) => {
   const result = [];
-  const begin = moment("2019-03-22");
+  const dbegin = Math.round(10 + 20 * Math.random());
+  const begin = moment(`2019-03-${dbegin}`);
   for (let i = 0; i < dataSets; i++) {
     result.push({
-      time: begin.format("x")
+      time: parseFloat(begin.format("x"))
     });
     begin.add(1, "hours");
   }
