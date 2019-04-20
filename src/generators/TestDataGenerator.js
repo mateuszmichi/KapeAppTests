@@ -27,7 +27,7 @@ export const DataSetLabel = ({
   dataSetEnd = 50
 }) => {
   const result = [];
-  const dbegin = Math.round(10 + 20 * Math.random());
+  const dbegin = Math.round(10 + 1 * Math.random());
   const begin = moment(`2019-03-${dbegin}`);
   for (let i = 0; i < dataSets; i++) {
     result.push({

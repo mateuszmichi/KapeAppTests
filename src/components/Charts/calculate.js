@@ -95,28 +95,50 @@ export const chartRangesFromConfig = (
   };
 };
 
-const regresionData = (xData, yData) =>
-  xData.reduce(
-    ({ sx2, sx, sxy, sy }, x, i) => ({
-      sx2: sx2 + x * x,
-      sx: sx + x,
-      sxy: sxy + yData[i] * x,
-      sy: sy + yData[i]
+const regresionData = (data, xKey, yKey) => {
+  const n = data.length;
+  let { sx, sy } = data.reduce(
+    ({ sx, sy }, d) => ({
+      sx: sx + d[xKey],
+      sy: sy + d[yKey]
     }),
     {
-      sx2: 0,
       sx: 0,
-      sxy: 0,
       sy: 0
     }
   );
+  sx = sx / n;
+  sy = sy / n;
+  return {
+    sx,
+    sy,
+    ...data.reduce(
+      ({ rx2, ry2, rxy }, d) => ({
+        rx2: rx2 + (d[xKey] - sx) * (d[xKey] - sx),
+        ry2: ry2 + (d[yKey] - sy) * (d[yKey] - sy),
+        rxy: rxy + (d[xKey] - sx) * (d[yKey] - sy)
+      }),
+      {
+        rx2: 0,
+        ry2: 0,
+        rxy: 0
+      }
+    )
+  };
+};
 
-export const regresion = (xData, yData) => {
-  const { sx, sy, sxy, sx2 } = regresionData(xData, yData);
-  const n = xData.length;
-  const a = (sxy * n - sx * sy) / (sx2 * n - sx * sx);
+export const regresion = (data, xKey, yKey) => {
+  const { sx, sy, rx2, ry2, rxy } = regresionData(data, xKey, yKey);
+  const a = rxy / rx2;
+  const b = sy - a * sx;
+  const ss = data.reduce(
+    (prev, d) => prev + (a * d[xKey] + b - sy) * (a * d[xKey] + b - sy),
+    0
+  );
+  console.log("R^2", ss / ry2);
   return {
     a,
-    b: (sy - a * sx) / n
+    b,
+    R2: ss / ry2
   };
 };

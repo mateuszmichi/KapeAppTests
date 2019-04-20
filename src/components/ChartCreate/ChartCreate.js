@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { filter } from "lodash";
+import { filter, sortBy } from "lodash";
 // css
 import "../../css/ChartCreate.css";
 // imported elements
@@ -91,6 +91,70 @@ const defaultChartConfig = {
   }
 };
 
+const updateKeys = (obj, key, xKey) => {
+  const nKeys = Object.keys(obj).reduce(
+    (prev, k) => ({
+      ...prev,
+      [k]: `${key}-${k}`
+    }),
+    {}
+  );
+  return Object.keys(nKeys).reduce(
+    (prev, k) => ({
+      ...prev,
+      [nKeys[k]]: obj[k]
+    }),
+    {
+      [xKey]: obj[xKey]
+    }
+  );
+};
+
+const filterLoadedData = (loadedData, usedData, xKey) => {
+  const usedKeys = usedData.reduce(
+    (prev, { dataSource }) => [...prev, dataSource],
+    [xKey]
+  );
+  return filter(
+    loadedData.map(value =>
+      filter(Object.keys(value), k => usedKeys.includes(k)).reduce(
+        (prev, k) => ({
+          ...prev,
+          [k]: value[k]
+        }),
+        {}
+      )
+    ),
+    set => Object.keys(set).length > 1
+  );
+};
+
+const mergeData = (loadedData, xKey) => {
+  const merged = Object.keys(loadedData).reduce(
+    (array, key) => [
+      ...array,
+      ...loadedData[key].data.map(d => updateKeys(d, key, xKey))
+    ],
+    []
+  );
+  const sorted = sortBy(merged, xKey);
+  if (xKey !== "time") {
+    return sorted;
+  }
+  const final = [];
+  let value = null;
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i][xKey] === value) {
+      const last = final.pop();
+      final.push({ ...last, ...sorted[i] });
+    } else {
+      final.push(sorted[i]);
+    }
+    value = sorted[i][xKey];
+  }
+  return final;
+};
+
 class ChartCreate extends Component {
   state = {
     loadedData: {},
@@ -115,62 +179,66 @@ class ChartCreate extends Component {
       time: ["datesNumber", "withTime"],
       other: ["rangeFrom", "rangeTo", "rangeSpan", "unit", "xKey"]
     };
-    return {
-      usedData: Object.keys(usedData).reduce(
+    const _chartConfig = {
+      settings: Object.keys(chartConfig.settings).reduce(
+        (prev, fieldKey) => ({
+          ...prev,
+          [fieldKey]: chartConfig.settings[fieldKey].value
+        }),
+        {
+          stopInteractive: false
+        }
+      ),
+      xAxis: filter(Object.keys(chartConfig.xAxis), e =>
+        [
+          ...xAxisMapper.common,
+          ...xAxisMapper[chartConfig.xAxis.keyType.value]
+        ].includes(e)
+      ).reduce(
+        (prev, fieldKey) => ({
+          ...prev,
+          [fieldKey]: chartConfig.xAxis[fieldKey].value
+        }),
+        {
+          xKey: "time"
+        }
+      ),
+      yAxises: Object.keys(chartConfig.yAxises).reduce(
         (result, key) => [
           ...result,
-          Object.keys(usedData[key].fields).reduce(
+          Object.keys(chartConfig.yAxises[key]).reduce(
             (prev, fieldKey) => ({
               ...prev,
-              [fieldKey]: usedData[key].fields[fieldKey].value
+              [fieldKey]: chartConfig.yAxises[key][fieldKey].value
             }),
             { id: key }
           )
         ],
         []
-      ),
-      chartConfig: {
-        settings: Object.keys(chartConfig.settings).reduce(
-          (prev, fieldKey) => ({
-            ...prev,
-            [fieldKey]: chartConfig.settings[fieldKey].value
-          }),
-          {
-            stopInteractive: false
-          }
-        ),
-        xAxis: filter(Object.keys(chartConfig.xAxis), e =>
-          [
-            ...xAxisMapper.common,
-            ...xAxisMapper[chartConfig.xAxis.keyType.value]
-          ].includes(e)
-        ).reduce(
-          (prev, fieldKey) => ({
-            ...prev,
-            [fieldKey]: chartConfig.xAxis[fieldKey].value
-          }),
-          {
-            xKey: "time"
-          }
-        ),
-        yAxises: Object.keys(chartConfig.yAxises).reduce(
-          (result, key) => [
-            ...result,
-            Object.keys(chartConfig.yAxises[key]).reduce(
-              (prev, fieldKey) => ({
-                ...prev,
-                [fieldKey]: chartConfig.yAxises[key][fieldKey].value
-              }),
-              { id: key }
-            )
-          ],
-          []
-        )
-      },
-      data: Object.keys(loadedData).reduce(
-        (prev, key) => [...prev, { id: key, data: loadedData[key].data }],
-        []
       )
+    };
+    const _usedData = Object.keys(usedData).reduce(
+      (result, key) => [
+        ...result,
+        Object.keys(usedData[key].fields).reduce(
+          (prev, fieldKey) => ({
+            ...prev,
+            [fieldKey]: usedData[key].fields[fieldKey].value
+          }),
+          { id: key }
+        )
+      ],
+      []
+    );
+    const _data = mergeData(loadedData, _chartConfig.xAxis.xKey);
+    return {
+      chartConfig: _chartConfig,
+      usedData: _usedData,
+      data: filterLoadedData(_data, _usedData, _chartConfig.xAxis.xKey)
+      // data: Object.keys(loadedData).reduce(
+      //   (prev, key) => [...prev, { id: key, data: loadedData[key].data }],
+      //   []
+      // )
     };
   };
 

@@ -1,4 +1,4 @@
-import React, { Component, PureComponent } from "react";
+import React, { Component, PureComponent, Fragment } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -10,12 +10,12 @@ import {
   YAxis
 } from "recharts";
 import PropTypes from "prop-types";
-import { filter, find } from "lodash";
+import { filter, find, isNil } from "lodash";
 import moment from "moment";
 // imports
 import { chartRangesFromConfig, dateTicks, regresion } from "./calculate";
+import { mathTextConverter } from "./converter";
 // ant.design
-import { Row, Col } from "antd";
 // css
 import "../../css/Charts/LineChart.css";
 
@@ -142,7 +142,13 @@ const CustomYLabel = ({ description, side, unit, color, ...props }) => {
           <div className="CustomLabelInner">
             <div className="CustomLabelRotate">
               {description}
-              {unit && ` [${unit}]`}
+              {unit && (
+                <Fragment>
+                  {" [ "}
+                  {mathTextConverter(unit)}
+                  {" ]"}
+                </Fragment>
+              )}
             </div>
           </div>
         </div>
@@ -288,10 +294,7 @@ const extractDataSource = path => {
   return tab[0];
 };
 
-const generateRegresionKey = (path, id) => `REG_${id}_${extractDataKey(path)}`;
-
-const generateRegresionPath = (path, id) =>
-  `${extractDataSource(path)}-${generateRegresionKey(path, id)}`;
+const generateRegresionKey = path => `REG_${path}`;
 
 const extractDataFromPath = (data, path) => {
   const sourceId = extractDataSource(path);
@@ -328,18 +331,18 @@ const CustomLine = ({
   ...props
 }) => (
   <Line
+    isAnimationActive={false}
+    activeDot={true}
+    type="monotone"
+    connectNulls={true}
     unit={(e => e && e.unit)(find(yAxises, e => e.id === axis))}
     name={description}
     lineId={lineId}
-    isAnimationActive={false}
     strokeDasharray={dashed ? `${dashLength} ${dashSpacing}` : undefined}
     strokeWidth={lineWidth}
-    type="monotone"
     stroke={dotted ? "transparent" : lineColor}
     dot={dotted ? { stroke: lineColor } : false}
-    activeDot={true}
-    data={extractDataFromPath(dataSet, dataSource)}
-    dataKey={extractDataKey(dataSource)}
+    dataKey={dataSource}
     yAxisId={axis}
     {...props}
   />
@@ -364,122 +367,88 @@ const CustomTooltip = ({ active, payload, label, withTime, ...props }) => {
   return null;
 };
 
+const getAllDataFromKey = (data, key) =>
+  filter(data, e => !isNil(e[key])).map(item => item[key]);
+
+const filterDataByKeys = (data, keys = []) =>
+  filter(data, e => keys.reduce((prev, k) => prev && !isNil(e[k]), true));
+
 const dataFromAxis = (data, usedData, axis) =>
   filter(usedData, e => e.axis === axis).reduce(
-    (prev, used) => [
-      ...prev,
-      ...extractDataFromPath(data, used.dataSource).map(item =>
-        Number.parseFloat(item[extractDataKey(used.dataSource)])
-      )
-    ],
+    (prev, used) => [...prev, ...getAllDataFromKey(data, used.dataSource)],
     []
   );
 
-const dataFromXAxis = (data, usedData, xKey) =>
-  usedData.reduce(
-    (prev, used) => [
-      ...prev,
-      ...extractDataFromPath(data, used.dataSource).map(item =>
-        Number.parseFloat(item[xKey])
-      )
-    ],
-    []
-  );
-
-const timeFromData = (data, usedData) =>
-  usedData.reduce(
-    (prev, used) => [
-      ...prev,
-      ...extractDataFromPath(data, used.dataSource).map(item =>
-        Number.parseFloat(item.time)
-      )
-    ],
-    []
-  );
-
-const generateRegresionValue = (dataSet, path, xKey) => {
-  const xData = dataSet.map(e => parseFloat(e[xKey]));
-  const yData = dataSet.map(e => parseFloat(e[extractDataKey(path)]));
-  return regresion(xData, yData);
-};
-
-const genRegresionValue = (dataSet, path, id, xKey) => {
-  const { a, b } = generateRegresionValue(dataSet, path, xKey);
-  return dataSet.map(item => ({
-    ...item,
-    [generateRegresionKey(path, id)]: a * item[xKey] + b
-  }));
-};
+const dataFromXAxis = (data, xKey) => getAllDataFromKey(data, xKey);
 
 const addRegresionValues = (data, usedData, xKey) => {
   usedData
     .filter(e => e.showRegresion)
-    .forEach(({ dataSource, id }) => {
-      const sourceId = extractDataSource(dataSource);
-      const i = data.findIndex(e => e.id === sourceId);
-      console.log("reg", i, data, usedData);
-      data[i] = {
-        ...data[i],
-        data: genRegresionValue(data[i].data, dataSource, id, xKey)
-      };
+    .forEach(({ dataSource }) => {
+      const dataSet = filterDataByKeys(data, [dataSource, xKey]);
+      const { a, b } = regresion(dataSet, xKey, dataSource);
+      const regKey = generateRegresionKey(dataSource);
+      dataSet.forEach(set => {
+        set[regKey] = a * set[xKey] + b;
+      });
     });
 };
 
-const RegresionSummary = ({ data, usedData, withTime, xKey }) => {
-  const calculate = filter(usedData, e => e.showRegresion).map(
-    ({ dataSource, id, description }) => {
-      const sourceId = extractDataSource(dataSource);
-      const i = data.findIndex(e => e.id === sourceId);
-      const { a, b } = generateRegresionValue(data[i].data, dataSource, xKey);
-      return {
-        description,
-        a,
-        begin: data[i].data[0][xKey],
-        b: b + a * data[i].data[0][xKey]
-      };
-    }
-  );
-  const msInHour = 1000 * 60 * 60;
-  return calculate.length > 0 ? (
-    <div className="RegresionSummary">
-      <div className="Title">Regresja liniowa</div>
-      <Row gutter={16}>
-        {calculate.map((e, i) => (
-          <Col span={12} key={i}>
-            <div className="RegresionValue">
-              <div className="CTProperty">
-                <div className="CTFeature">Źródło danych</div>
-                <div className="CTValue">{e.description}</div>
-              </div>
-              <div className="CTProperty">
-                <div className="CTFeature">Wzór</div>
-                <div className="CTValue">
-                  {`( ${(
-                    e.a * (withTime ? msInHour : msInHour * 24)
-                  ).toExponential(4)} ) x czas + ${e.b.toFixed(2)}`}
-                </div>
-              </div>
-              <div className="CTProperty">
-                <div className="CTFeature">Jednostka</div>
-                <div className="CTValue">
-                  {`Czas liczony w ${withTime ? "godzinach" : "dobach"}`}
-                </div>
-              </div>
-              <div className="CTProperty">
-                <div className="CTFeature">Początek (czas = 0)</div>
-                <div className="CTValue">
-                  {moment
-                    .unix(e.begin / 1000)
-                    .format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD")}
-                </div>
-              </div>
-            </div>
-          </Col>
-        ))}
-      </Row>
-    </div>
-  ) : null;
-};
+// const RegresionSummary = ({ data, usedData, withTime, xKey }) => {
+//   const calculate = filter(usedData, e => e.showRegresion).map(
+//     ({ dataSource, id, description }) => {
+//       const sourceId = extractDataSource(dataSource);
+//       const i = data.findIndex(e => e.id === sourceId);
+//       const { a, b } = generateRegresionValue(data[i].data, dataSource, xKey);
+//       return {
+//         description,
+//         a,
+//         begin: data[i].data[0][xKey],
+//         b: b + a * data[i].data[0][xKey]
+//       };
+//     }
+//   );
+//   const msInHour = 1000 * 60 * 60;
+//   return calculate.length > 0 ? (
+//     <div className="RegresionSummary">
+//       <div className="Title">Regresja liniowa</div>
+//       <Row gutter={16}>
+//         {calculate.map((e, i) => (
+//           <Col span={12} key={i}>
+//             <div className="RegresionValue">
+//               <div className="CTProperty">
+//                 <div className="CTFeature">Źródło danych</div>
+//                 <div className="CTValue">{e.description}</div>
+//               </div>
+//               <div className="CTProperty">
+//                 <div className="CTFeature">Wzór</div>
+//                 <div className="CTValue">
+//                   {`( ${(
+//                     e.a * (withTime ? msInHour : msInHour * 24)
+//                   ).toExponential(4)} ) x czas + ${e.b.toFixed(2)}`}
+//                 </div>
+//               </div>
+//               <div className="CTProperty">
+//                 <div className="CTFeature">Jednostka</div>
+//                 <div className="CTValue">
+//                   {`Czas liczony w ${withTime ? "godzinach" : "dobach"}`}
+//                 </div>
+//               </div>
+//               <div className="CTProperty">
+//                 <div className="CTFeature">Początek (czas = 0)</div>
+//                 <div className="CTValue">
+//                   {moment
+//                     .unix(e.begin / 1000)
+//                     .format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD")}
+//                 </div>
+//               </div>
+//             </div>
+//           </Col>
+//         ))}
+//       </Row>
+//     </div>
+//   ) : null;
+// };
 
 class ResponsiveLineChart extends Component {
   static propTypes = {
@@ -500,7 +469,7 @@ class ResponsiveLineChart extends Component {
       title,
       showLegend
     } = settings;
-
+    // TODO ref
     addRegresionValues(data, usedData, xAxis.xKey);
     return (
       <div className="LineChart">
@@ -532,14 +501,18 @@ class ResponsiveLineChart extends Component {
               )}
               <CartesianGrid vertical={false} strokeDasharray="5 5" />
               {console.log("renderujemy opcję dla", xAxis.xKey)}
+              {
+                // TODO ref
+                // Może przejscie na tryb i obiekt z configuracja
+              }
               {xAxis.xKey === "time"
                 ? CustomXAxis({
                     ...xAxis,
-                    timeSpread: timeFromData(data, usedData)
+                    timeSpread: dataFromXAxis(data, xAxis.xKey)
                   })
                 : CustomXAxisOther({
                     ...xAxis,
-                    dataSpread: dataFromXAxis(data, usedData, xAxis.xKey)
+                    dataSpread: dataFromXAxis(data, xAxis.xKey)
                   })}
               {// WONTFIX recharts ma problem z przeciazaniem komponentow
               yAxises.map(yAxis =>
@@ -554,9 +527,8 @@ class ResponsiveLineChart extends Component {
                   CustomLine({
                     yAxises,
                     ...used,
-                    dataSource: generateRegresionPath(dataSource, id),
+                    dataSource: generateRegresionKey(dataSource),
                     lineId: id,
-                    regresion: true,
                     dataSet: data,
                     key: `regresionLine-${id}`,
                     dotted: false,
@@ -564,10 +536,11 @@ class ResponsiveLineChart extends Component {
                     ...regresionSettings
                   })
               )}
-              {usedData.map(({ id, ...used }) =>
+              {usedData.map(({ id, dotted, ...used }) =>
                 CustomLine({
                   yAxises,
                   ...used,
+                  dotted: xAxis.xKey === "time" ? dotted : true,
                   lineId: id,
                   dataSet: data,
                   key: `usedData-${id}`
@@ -576,12 +549,12 @@ class ResponsiveLineChart extends Component {
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <RegresionSummary
+        {/* <RegresionSummary
           data={data}
           usedData={usedData}
           xKey={xAxis.xKey}
           withTime={xAxis.withTime}
-        />
+        /> */}
       </div>
     );
   }
