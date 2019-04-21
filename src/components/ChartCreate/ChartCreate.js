@@ -31,7 +31,7 @@ const defaultChartConfig = {
       value: "Czas"
     },
     showDescription: {
-      value: true
+      value: false
     },
     color: {
       value: "black"
@@ -237,10 +237,6 @@ class ChartCreate extends Component {
       chartConfig: _chartConfig,
       usedData: _usedData,
       data: filterLoadedData(_data, _usedData, _chartConfig.xAxis.xKey)
-      // data: Object.keys(loadedData).reduce(
-      //   (prev, key) => [...prev, { id: key, data: loadedData[key].data }],
-      //   []
-      // )
     };
   };
 

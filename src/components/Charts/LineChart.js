@@ -263,7 +263,12 @@ const CustomXAxisOther = ({
     label={
       showDescription
         ? props => (
-            <CustomXLabel description={description} color={color} {...props} />
+            <CustomXLabel
+              description={description}
+              color={color}
+              unit={unit}
+              {...props}
+            />
           )
         : undefined
     }
