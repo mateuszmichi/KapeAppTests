@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Fragment } from "react";
 
 const TYPES = Object.freeze({
   NORMAL: "normal",
@@ -7,9 +7,9 @@ const TYPES = Object.freeze({
 });
 
 const typesConverter = {
-  [TYPES.NORMAL]: str => str,
-  [TYPES.UPPER]: str => <sup>{str}</sup>,
-  [TYPES.LOWER]: str => <sub>{str}</sub>
+  [TYPES.NORMAL]: (str, { ...props }) => <span {...props}>{str}</span>,
+  [TYPES.UPPER]: (str, { ...props }) => <sup {...props}>{str}</sup>,
+  [TYPES.LOWER]: (str, { ...props }) => <sub {...props}>{str}</sub>
 };
 
 const getBracketExpr = str => {
@@ -81,8 +81,14 @@ export const mathTextConverter = str => {
       });
       result = nResult;
     });
-    return result.map(({ type, string }) => typesConverter[type](string));
+    return result.map(({ type, string }, key) =>
+      typesConverter[type](string, { key })
+    );
   } catch {
     return str;
   }
 };
+
+export const MathParser = ({ children, ...props }) => (
+  <Fragment {...props}>{mathTextConverter(children)}</Fragment>
+);

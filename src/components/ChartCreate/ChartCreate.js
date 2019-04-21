@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { filter, sortBy } from "lodash";
+import { filter, sortBy, isNil } from "lodash";
 // css
 import "../../css/ChartCreate.css";
 // imported elements
@@ -125,7 +125,9 @@ const filterLoadedData = (loadedData, usedData, xKey) => {
         {}
       )
     ),
-    set => Object.keys(set).length > 1
+    set =>
+      !isNil(set[xKey]) &&
+      (ks => ks.length > 1 && ks.includes(xKey))(Object.keys(set))
   );
 };
 

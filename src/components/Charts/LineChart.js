@@ -1,4 +1,4 @@
-import React, { Component, PureComponent, Fragment } from "react";
+import React, { Component, PureComponent } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -14,8 +14,9 @@ import { filter, find, isNil } from "lodash";
 import moment from "moment";
 // imports
 import { chartRangesFromConfig, dateTicks, regresion } from "./calculate";
-import { mathTextConverter } from "./converter";
+import { MathParser } from "./converter";
 // ant.design
+import { Col, Row } from "antd";
 // css
 import "../../css/Charts/LineChart.css";
 
@@ -33,6 +34,9 @@ const withDescriptionType = {
 };
 const withIdType = {
   id: PropTypes.string.isRequired
+};
+const withXKeyType = {
+  xKey: PropTypes.string.isRequired
 };
 
 const xAxisType = {
@@ -68,19 +72,22 @@ const usedDataType = {
   lineWidth: PropTypes.number.isRequired
 };
 
-const dataType = {
-  ...withIdType,
-  data: PropTypes.array.isRequired
-};
-
 const chartConfigType = {
   settings: PropTypes.shape(settingsType).isRequired,
   xAxis: PropTypes.oneOfType([
-    PropTypes.shape(xAxisType),
-    PropTypes.shape(yAxisType)
+    PropTypes.shape({
+      ...xAxisType,
+      ...withXKeyType
+    }),
+    PropTypes.shape({
+      ...yAxisType,
+      ...withXKeyType
+    })
   ]).isRequired,
   yAxises: PropTypes.arrayOf(PropTypes.shape(yAxisType).isRequired).isRequired
 };
+
+const isTimeChart = xKey => xKey === "time";
 
 const CustomYAxis = ({
   description,
@@ -142,13 +149,7 @@ const CustomYLabel = ({ description, side, unit, color, ...props }) => {
           <div className="CustomLabelInner">
             <div className="CustomLabelRotate">
               {description}
-              {unit && (
-                <Fragment>
-                  {" [ "}
-                  {mathTextConverter(unit)}
-                  {" ]"}
-                </Fragment>
-              )}
+              {unit && <MathParser>{` [ ${unit} ]`}</MathParser>}
             </div>
           </div>
         </div>
@@ -156,7 +157,7 @@ const CustomYLabel = ({ description, side, unit, color, ...props }) => {
     </g>
   );
 };
-const CustomXLabel = ({ description, color, ...props }) => {
+const CustomXLabel = ({ description, unit, color, ...props }) => {
   const { x, y, height, width } = props.viewBox;
   const customHeight = 20;
   const ny = y + height - customHeight;
@@ -165,7 +166,10 @@ const CustomXLabel = ({ description, color, ...props }) => {
       <foreignObject height={customHeight} width={width}>
         <div className="CustomLabel" style={{ color }}>
           <div className="CustomLabelInner">
-            <div className="CustomLabelTransform">{description}</div>
+            <div className="CustomLabelTransform">
+              {description}
+              {unit && <MathParser>{` [ ${unit} ]`}</MathParser>}
+            </div>
           </div>
         </div>
       </foreignObject>
@@ -180,7 +184,6 @@ const formatHour = timestamp => moment.unix(timestamp / 1000).format("HH:mm");
 class CustomizedXAxisTick extends PureComponent {
   render() {
     const { x, y, payload, withTime } = this.props;
-
     return (
       <g transform={`translate(${x},${y})`}>
         <text x={0} y={0} dy={16} textAnchor="middle" fill="#666">
@@ -206,7 +209,7 @@ const CustomXAxis = ({
   color,
   withTime,
   datesNumber,
-  timeSpread,
+  ranges,
   ...props
 }) => (
   <XAxis
@@ -222,14 +225,7 @@ const CustomXAxis = ({
     stroke={color}
     height={xAxisHeight(showDescription, withTime)}
     domain={["dataMin", "dataMax"]}
-    ticks={dateTicks(
-      {
-        dateFrom: Math.min(...timeSpread),
-        dateTo: Math.max(...timeSpread)
-      },
-      datesNumber,
-      withTime
-    )}
+    ticks={ranges.ticks}
     label={
       showDescription
         ? props => (
@@ -244,67 +240,40 @@ const CustomXAxis = ({
 const CustomXAxisOther = ({
   description,
   xKey,
-  dataSpread,
+  ranges,
   showDescription,
   color,
-  rangeFrom,
-  rangeTo,
-  rangeSpan,
   unit,
   ...props
-}) => {
-  const { domainMin, domainMax, ticks } = chartRangesFromConfig(dataSpread, {
-    rangeFrom,
-    rangeTo,
-    rangeSpan
-  });
-  return (
-    <XAxis
-      allowDataOverflow={true}
-      padding={{
-        left: 10,
-        right: 30
-      }}
-      interval={0}
-      dataKey={xKey}
-      type="number"
-      stroke={color}
-      height={xAxisHeight(showDescription, false)}
-      domain={[domainMin, domainMax]}
-      ticks={ticks}
-      tickFormatter={tick => parseFloat(tick.toFixed(2))}
-      label={
-        showDescription
-          ? props => (
-              <CustomXLabel
-                description={description}
-                color={color}
-                {...props}
-              />
-            )
-          : undefined
-      }
-      {...props}
-    />
-  );
-};
-
-const extractDataSource = path => {
-  const tab = path.split("-");
-  return tab[0];
-};
+}) => (
+  <XAxis
+    allowDataOverflow={true}
+    padding={{
+      left: 10,
+      right: 30
+    }}
+    interval={0}
+    dataKey={xKey}
+    type="number"
+    stroke={color}
+    height={xAxisHeight(showDescription, false)}
+    domain={[ranges.domainMin, ranges.domainMax]}
+    ticks={ranges.ticks}
+    tickFormatter={tick => parseFloat(tick.toFixed(2))}
+    label={
+      showDescription
+        ? props => (
+            <CustomXLabel description={description} color={color} {...props} />
+          )
+        : undefined
+    }
+    {...props}
+  />
+);
 
 const generateRegresionKey = path => `REG_${path}`;
 
-const extractDataFromPath = (data, path) => {
-  const sourceId = extractDataSource(path);
-  return find(data, e => e.id === sourceId).data;
-};
-
-const extractDataKey = path => {
-  const tab = path.split("-");
-  return tab.pop();
-};
+const filledString = str => str && str.length;
 
 const regresionSettings = {
   activeDot: false,
@@ -348,17 +317,37 @@ const CustomLine = ({
   />
 );
 
-const CustomTooltip = ({ active, payload, label, withTime, ...props }) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  xAxis,
+  withTime,
+  ...props
+}) => {
+  const { xKey, description, unit } = xAxis;
   if (active) {
     return (
       <div className="CustomTooltip">
-        <div className="CTTime">
-          {`${formatDate(label)} ${withTime ? `${formatHour(label)}` : ""}`}
-        </div>
+        {isTimeChart(xKey) ? (
+          <div className="CTTime">
+            {`${formatDate(label)} ${withTime ? `${formatHour(label)}` : ""}`}
+          </div>
+        ) : (
+          <div className="CTTime">
+            <div className="CTFeature">{description}</div>
+            <div className="CTValue">
+              <MathParser>{`${label} ${unit}`}</MathParser>
+            </div>
+          </div>
+        )}
+
         {filter(payload, e => !e.dataKey.startsWith("REG_")).map((e, i) => (
           <div className="CTProperty" key={i}>
             <div className="CTFeature">{e.name}</div>
-            <div className="CTValue">{`${e.payload[e.dataKey]} ${e.unit}`}</div>
+            <div className="CTValue">
+              <MathParser>{`${e.payload[e.dataKey]} ${e.unit}`}</MathParser>
+            </div>
           </div>
         ))}
       </div>
@@ -384,9 +373,11 @@ const dataFromXAxis = (data, xKey) => getAllDataFromKey(data, xKey);
 const addRegresionValues = (data, usedData, xKey) => {
   usedData
     .filter(e => e.showRegresion)
-    .forEach(({ dataSource }) => {
+    .forEach(used => {
+      const { dataSource } = used;
       const dataSet = filterDataByKeys(data, [dataSource, xKey]);
-      const { a, b } = regresion(dataSet, xKey, dataSource);
+      used["regresion"] = regresion(dataSet, xKey, dataSource);
+      const { a, b } = used["regresion"];
       const regKey = generateRegresionKey(dataSource);
       dataSet.forEach(set => {
         set[regKey] = a * set[xKey] + b;
@@ -394,67 +385,117 @@ const addRegresionValues = (data, usedData, xKey) => {
     });
 };
 
-// const RegresionSummary = ({ data, usedData, withTime, xKey }) => {
-//   const calculate = filter(usedData, e => e.showRegresion).map(
-//     ({ dataSource, id, description }) => {
-//       const sourceId = extractDataSource(dataSource);
-//       const i = data.findIndex(e => e.id === sourceId);
-//       const { a, b } = generateRegresionValue(data[i].data, dataSource, xKey);
-//       return {
-//         description,
-//         a,
-//         begin: data[i].data[0][xKey],
-//         b: b + a * data[i].data[0][xKey]
-//       };
-//     }
-//   );
-//   const msInHour = 1000 * 60 * 60;
-//   return calculate.length > 0 ? (
-//     <div className="RegresionSummary">
-//       <div className="Title">Regresja liniowa</div>
-//       <Row gutter={16}>
-//         {calculate.map((e, i) => (
-//           <Col span={12} key={i}>
-//             <div className="RegresionValue">
-//               <div className="CTProperty">
-//                 <div className="CTFeature">Źródło danych</div>
-//                 <div className="CTValue">{e.description}</div>
-//               </div>
-//               <div className="CTProperty">
-//                 <div className="CTFeature">Wzór</div>
-//                 <div className="CTValue">
-//                   {`( ${(
-//                     e.a * (withTime ? msInHour : msInHour * 24)
-//                   ).toExponential(4)} ) x czas + ${e.b.toFixed(2)}`}
-//                 </div>
-//               </div>
-//               <div className="CTProperty">
-//                 <div className="CTFeature">Jednostka</div>
-//                 <div className="CTValue">
-//                   {`Czas liczony w ${withTime ? "godzinach" : "dobach"}`}
-//                 </div>
-//               </div>
-//               <div className="CTProperty">
-//                 <div className="CTFeature">Początek (czas = 0)</div>
-//                 <div className="CTValue">
-//                   {moment
-//                     .unix(e.begin / 1000)
-//                     .format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD")}
-//                 </div>
-//               </div>
-//             </div>
-//           </Col>
-//         ))}
-//       </Row>
-//     </div>
-//   ) : null;
-// };
+const isDataFunction = (data, xKey, yKey) => {
+  let y = null;
+  let x = null;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][xKey] && data[i][yKey]) {
+      if (data[i][xKey] === x && data[i][yKey] !== y) {
+        return false;
+      }
+      x = data[i][xKey];
+      y = data[i][yKey];
+    }
+  }
+  return true;
+};
+
+const RegresionSummary = ({ usedData, xAxis, yAxises, ranges }) => {
+  const { xKey, withTime, unit } = xAxis;
+  const isTime = isTimeChart(xKey);
+  const calculate = filter(usedData, e => e.showRegresion).map(
+    ({ regresion, ...rest }) => {
+      let { a, b } = regresion;
+      const { domainMin } = ranges;
+      let begin = 0;
+      if (isTime) {
+        b = b + a * domainMin;
+        begin = domainMin;
+      }
+      return {
+        ...rest,
+        regresion: {
+          ...regresion,
+          b,
+          begin
+        }
+      };
+    }
+  );
+  const msInHour = 1000 * 60 * 60;
+  return calculate.length > 0 ? (
+    <div className="RegresionSummary">
+      <div className="Title">Regresja liniowa</div>
+      <Row gutter={16}>
+        {calculate.map(({ description, axis, regresion }, i) => (
+          <Col span={12} key={i}>
+            <div className="RegresionValue">
+              <div className="CTProperty">
+                <div className="CTFeature">Źródło danych</div>
+                <div className="CTValue">{description}</div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">Wzór</div>
+                <div className="CTValue">
+                  {isTime
+                    ? `( ${(
+                        regresion.a * (withTime ? msInHour : msInHour * 24)
+                      ).toExponential(4)} ) · czas + ${regresion.b.toFixed(2)}`
+                    : `${regresion.a.toExponential(
+                        4
+                      )} · x + ${regresion.b.toFixed(2)}`}
+                </div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">Jednostka przyrostu</div>
+                <div className="CTValue">
+                  <MathParser>
+                    {(yUnit =>
+                      filledString(yUnit) || filledString(unit) || isTime
+                        ? `[ ${filledString(yUnit) ? yUnit : "1"}/${
+                            isTime
+                              ? withTime
+                                ? "godzinę"
+                                : "dzień"
+                              : filledString(unit)
+                              ? unit
+                              : "1"
+                          }]`
+                        : "bezwymiarowa")(
+                      (e => e && e.unit)(find(yAxises, e => e.id === axis))
+                    )}
+                  </MathParser>
+                </div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">Początek</div>
+                <div className="CTValue">
+                  {isTime
+                    ? moment
+                        .unix(regresion.begin / 1000)
+                        .format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD")
+                    : "x = 0"}
+                </div>
+              </div>
+              <div className="CTProperty">
+                <div className="CTFeature">
+                  <MathParser>R^2</MathParser>
+                </div>
+                <div className="CTValue">{regresion.R2.toFixed(4)}</div>
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+    </div>
+  ) : null;
+};
 
 class ResponsiveLineChart extends Component {
   static propTypes = {
     chartConfig: PropTypes.shape(chartConfigType).isRequired,
     usedData: PropTypes.arrayOf(PropTypes.shape(usedDataType)).isRequired,
-    data: PropTypes.arrayOf(PropTypes.shape(dataType)).isRequired
+    data: PropTypes.array.isRequired
   };
 
   render() {
@@ -469,8 +510,13 @@ class ResponsiveLineChart extends Component {
       title,
       showLegend
     } = settings;
-    // TODO ref
     addRegresionValues(data, usedData, xAxis.xKey);
+
+    const xAxisRanges = (axisFun =>
+      axisFun(dataFromXAxis(data, xAxis.xKey), xAxis))(
+      isTimeChart(xAxis.xKey) ? dateTicks : chartRangesFromConfig
+    );
+
     return (
       <div className="LineChart">
         <div
@@ -479,16 +525,15 @@ class ResponsiveLineChart extends Component {
             width: `${width}%`
           }}
         >
-          {showTitle && <div className="ChartTitle">{title}</div>}
+          {showTitle && title.length && (
+            <div className="ChartTitle">{title}</div>
+          )}
           <ResponsiveContainer width={"100%"} aspect={width / height}>
             <LineChart data={data}>
               {!stopInteractive && (
                 <Tooltip
                   content={
-                    <CustomTooltip
-                      withTime={xAxis.withTime}
-                      xKey={xAxis.xKey}
-                    />
+                    <CustomTooltip withTime={xAxis.withTime} xAxis={xAxis} />
                   }
                 />
               )}
@@ -496,24 +541,15 @@ class ResponsiveLineChart extends Component {
                 <Legend
                   height={36}
                   verticalAlign="top"
-                  // paylodUniqBy={({ payload }) => payload.lineId}
+                  paylodUniqBy={({ payload }) => payload.lineId}
                 />
               )}
-              <CartesianGrid vertical={false} strokeDasharray="5 5" />
-              {console.log("renderujemy opcję dla", xAxis.xKey)}
-              {
-                // TODO ref
-                // Może przejscie na tryb i obiekt z configuracja
-              }
-              {xAxis.xKey === "time"
-                ? CustomXAxis({
-                    ...xAxis,
-                    timeSpread: dataFromXAxis(data, xAxis.xKey)
-                  })
-                : CustomXAxisOther({
-                    ...xAxis,
-                    dataSpread: dataFromXAxis(data, xAxis.xKey)
-                  })}
+              <CartesianGrid strokeDasharray="5 5" vertical={false} />
+              {(axisComp =>
+                axisComp({
+                  ...xAxis,
+                  ranges: xAxisRanges
+                }))(isTimeChart(xAxis.xKey) ? CustomXAxis : CustomXAxisOther)}
               {// WONTFIX recharts ma problem z przeciazaniem komponentow
               yAxises.map(yAxis =>
                 CustomYAxis({
@@ -536,11 +572,16 @@ class ResponsiveLineChart extends Component {
                     ...regresionSettings
                   })
               )}
-              {usedData.map(({ id, dotted, ...used }) =>
+              {usedData.map(({ id, dotted, dataSource, ...used }) =>
                 CustomLine({
                   yAxises,
                   ...used,
-                  dotted: xAxis.xKey === "time" ? dotted : true,
+                  dataSource,
+                  dotted:
+                    isDataFunction(xAxis.xKey) ||
+                    isDataFunction(data, xAxis.xKey, dataSource)
+                      ? dotted
+                      : true,
                   lineId: id,
                   dataSet: data,
                   key: `usedData-${id}`
@@ -549,12 +590,12 @@ class ResponsiveLineChart extends Component {
             </LineChart>
           </ResponsiveContainer>
         </div>
-        {/* <RegresionSummary
-          data={data}
+        <RegresionSummary
           usedData={usedData}
-          xKey={xAxis.xKey}
-          withTime={xAxis.withTime}
-        /> */}
+          xAxis={xAxis}
+          ranges={xAxisRanges}
+          yAxises={yAxises}
+        />
       </div>
     );
   }

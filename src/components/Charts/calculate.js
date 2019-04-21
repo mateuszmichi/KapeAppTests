@@ -54,9 +54,10 @@ const getRangeFromData = values => ({
 
 const getTicks = ({ min, max }, span) => range(min, max + span / 2, span);
 
-export const dateTicks = ({ dateFrom, dateTo }, datesNumber, withTime) => {
-  const start = moment.unix(dateFrom / 1000);
-  const end = moment.unix(dateTo / 1000);
+export const dateTicks = (data, { datesNumber, withTime }) => {
+  const { min, max } = getRangeFromData(data);
+  const start = moment.unix(min / 1000);
+  const end = moment.unix(max / 1000);
   const duration = moment.duration(end.diff(start));
   const periods = withTime ? duration.asHours() : duration.asDays();
   const number = Math.min(periods, datesNumber - 1);
@@ -67,14 +68,18 @@ export const dateTicks = ({ dateFrom, dateTo }, datesNumber, withTime) => {
     result.push(iter.format("x"));
     iter.add(span, withTime ? "hours" : "day");
   }
-  return result;
+  return {
+    domainMin: min,
+    domainMax: max,
+    ticks: result
+  };
 };
 
 export const chartRangesFromConfig = (
-  values,
+  data,
   { rangeFrom, rangeTo, rangeSpan }
 ) => {
-  const { min, max } = getRangeFromData(values);
+  const { min, max } = getRangeFromData(data);
   const from = formatRange(rangeFrom, min);
   const to = formatRange(rangeTo, max);
   const range = {
