@@ -24,6 +24,12 @@ const defaultChartConfig = {
     },
     width: {
       value: 100
+    },
+    horizontalGrid: {
+      value: true
+    },
+    verticalGrid: {
+      value: true
     }
   },
   xAxis: {
@@ -34,7 +40,7 @@ const defaultChartConfig = {
       value: false
     },
     color: {
-      value: "black"
+      value: "#333"
     },
     datesNumber: {
       value: 5
@@ -61,7 +67,7 @@ const defaultChartConfig = {
   yAxises: {
     0: {
       color: {
-        value: "black"
+        value: "#333"
       },
       showAxis: {
         value: true

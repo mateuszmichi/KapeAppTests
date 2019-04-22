@@ -47,6 +47,7 @@ text {
   padding: 8px 8px 16px 8px;
   min-width: 120px;
   display: table;
+  box-shadow: 0 0 8px rgba(40, 40, 40, 0.3);
 }
 
 .CTTime {

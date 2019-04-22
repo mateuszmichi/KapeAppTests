@@ -8,6 +8,10 @@ const { Option } = Select;
 
 const colors = [
   {
+    description: "Ciemnoszary",
+    color: "#333"
+  },
+  {
     description: "Czarny",
     color: "black"
   },

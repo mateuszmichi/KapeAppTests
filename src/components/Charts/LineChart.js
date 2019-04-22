@@ -4,6 +4,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -183,14 +184,14 @@ const formatHour = timestamp => moment.unix(timestamp / 1000).format("HH:mm");
 
 class CustomizedXAxisTick extends PureComponent {
   render() {
-    const { x, y, payload, withTime } = this.props;
+    const { x, y, payload, withTime, color } = this.props;
     return (
       <g transform={`translate(${x},${y})`}>
-        <text x={0} y={0} dy={16} textAnchor="middle" fill="#666">
+        <text x={0} y={0} dy={16} textAnchor="middle" fill={color}>
           {formatDate(payload.value)}
         </text>
         {withTime && (
-          <text x={0} y={16} dy={16} textAnchor="middle" fill="#666">
+          <text x={0} y={16} dy={16} textAnchor="middle" fill={color}>
             {formatHour(payload.value)}
           </text>
         )}
@@ -215,10 +216,10 @@ const CustomXAxis = ({
   <XAxis
     allowDataOverflow={true}
     padding={{
-      left: 10,
+      left: 30,
       right: 30
     }}
-    tick={<CustomizedXAxisTick withTime={withTime} />}
+    tick={<CustomizedXAxisTick withTime={withTime} color={color} />}
     interval={0}
     dataKey={xKey}
     type="number"
@@ -249,7 +250,7 @@ const CustomXAxisOther = ({
   <XAxis
     allowDataOverflow={true}
     padding={{
-      left: 10,
+      left: 30,
       right: 30
     }}
     interval={0}
@@ -313,9 +314,9 @@ const CustomLine = ({
     name={description}
     lineId={lineId}
     strokeDasharray={dashed ? `${dashLength} ${dashSpacing}` : undefined}
-    strokeWidth={lineWidth}
-    stroke={dotted ? "transparent" : lineColor}
-    dot={dotted ? { stroke: lineColor } : false}
+    strokeWidth={dotted ? 0 : lineWidth}
+    stroke={lineColor}
+    dot={dotted ? { stroke: lineColor, strokeWidth: lineWidth } : false}
     dataKey={dataSource}
     yAxisId={axis}
     {...props}
@@ -513,6 +514,8 @@ class ResponsiveLineChart extends Component {
       stopInteractive,
       showTitle,
       title,
+      horizontalGrid,
+      verticalGrid,
       showLegend
     } = settings;
     addRegresionValues(data, usedData, xAxis.xKey);
@@ -546,10 +549,22 @@ class ResponsiveLineChart extends Component {
                 <Legend
                   height={36}
                   verticalAlign="top"
-                  paylodUniqBy={({ payload }) => payload.lineId}
+                  // paylodUniqBy={({ payload }) => payload.lineId}
                 />
               )}
-              <CartesianGrid strokeDasharray="5 5" vertical={false} />
+              <CartesianGrid
+                strokeDasharray="5 5"
+                horizontal={horizontalGrid}
+                vertical={false}
+              />
+              {verticalGrid &&
+                xAxisRanges.ticks.map((x, i) => (
+                  <ReferenceLine
+                    key={`cartesian-x-${i}`}
+                    x={x}
+                    strokeDasharray="5 5"
+                  />
+                ))}
               {(axisComp =>
                 axisComp({
                   ...xAxis,

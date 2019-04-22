@@ -74,6 +74,18 @@ class EditSettingsForm extends Component {
               ]
             })(<Slider step={5} min={10} max={100} />)}
           </Form.Item>
+          <Form.Item>
+            {getFieldDecorator("horizontalGrid", {
+              initialValue: true,
+              valuePropName: "checked"
+            })(<Checkbox>Pokaż poziome linie siatki</Checkbox>)}
+          </Form.Item>
+          <Form.Item>
+            {getFieldDecorator("verticalGrid", {
+              initialValue: true,
+              valuePropName: "checked"
+            })(<Checkbox>Pokaż pionowe linie siatki</Checkbox>)}
+          </Form.Item>
         </div>
         <div className="LoadDataDialogSubmit">
           <Button onClick={this.handleReset} style={{ marginRight: 16 }}>
